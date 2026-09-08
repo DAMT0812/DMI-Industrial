@@ -1,0 +1,99 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "@fontsource-variable/inter";
+
+@custom-variant dark (&:is(.dark *));
+
+/*
+ * DMI Industrial — Asset Management
+ * Brand tokens. Centralized here (Tailwind v4 CSS-first config) so no
+ * component hardcodes a hex value directly — see tailwind.config.ts for
+ * the plain-TS mirror used outside Tailwind class names (chart series, etc).
+ */
+@theme inline {
+  --font-sans: 'Inter Variable', ui-sans-serif, system-ui, sans-serif;
+
+  /* Brand palette */
+  --color-brand-primary: #384c5c;
+  --color-brand-primary-dark: #24333f;
+  --color-brand-cobalt: #0284c7;
+  --color-brand-pine: #0f766e;
+  --color-brand-gray: #64748b;
+
+  --color-app-bg: #f8fafc;
+  --color-surface: #ffffff;
+  --color-surface-secondary: #f1f5f9;
+  --color-border-subtle: #e2e8f0;
+
+  --color-status-success: #15803d;
+  --color-status-success-bg: #dcfce7;
+  --color-status-warning: #b45309;
+  --color-status-warning-bg: #fef3c7;
+  --color-status-danger: #b91c1c;
+  --color-status-danger-bg: #fee2e2;
+  --color-status-neutral: #475569;
+  --color-status-neutral-bg: #f1f5f9;
+
+  /* shadcn/ui semantic tokens, mapped onto the brand palette */
+  --color-background: var(--color-app-bg);
+  --color-foreground: #1e293b;
+  --color-card: var(--color-surface);
+  --color-card-foreground: #1e293b;
+  --color-popover: var(--color-surface);
+  --color-popover-foreground: #1e293b;
+  --color-primary: var(--color-brand-primary);
+  --color-primary-foreground: #ffffff;
+  --color-secondary: var(--color-surface-secondary);
+  --color-secondary-foreground: var(--color-brand-primary);
+  --color-muted: var(--color-surface-secondary);
+  --color-muted-foreground: var(--color-brand-gray);
+  --color-accent: var(--color-surface-secondary);
+  --color-accent-foreground: var(--color-brand-primary);
+  --color-destructive: var(--color-status-danger);
+  --color-destructive-foreground: #ffffff;
+  --color-border: var(--color-border-subtle);
+  --color-input: var(--color-border-subtle);
+  --color-ring: var(--color-brand-cobalt);
+
+  --color-chart-1: var(--color-brand-primary);
+  --color-chart-2: var(--color-brand-cobalt);
+  --color-chart-3: var(--color-brand-pine);
+  --color-chart-4: var(--color-brand-gray);
+  --color-chart-5: #94a3b8;
+
+  --color-sidebar: var(--color-brand-primary);
+  --color-sidebar-foreground: #e2e8f0;
+  --color-sidebar-primary: #ffffff;
+  --color-sidebar-primary-foreground: var(--color-brand-primary);
+  --color-sidebar-accent: var(--color-brand-primary-dark);
+  --color-sidebar-accent-foreground: #ffffff;
+  --color-sidebar-border: var(--color-brand-primary-dark);
+  --color-sidebar-ring: var(--color-brand-cobalt);
+
+  /* Radii: 4px for inputs/badges/buttons/cells, 8px for cards/modals */
+  --radius-sm: 4px;
+  --radius-md: 4px;
+  --radius-lg: 8px;
+  --radius-xl: 8px;
+}
+
+:root {
+  --radius: 8px;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-variant-numeric: normal;
+  }
+  html {
+    @apply font-sans;
+  }
+}
+
+@utility tabular {
+  font-variant-numeric: tabular-nums;
+}
