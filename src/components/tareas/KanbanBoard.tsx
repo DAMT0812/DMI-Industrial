@@ -1,6 +1,7 @@
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
-import { naveById, parqueById, tareasOperativas, type ColumnaKanban, type TareaOperativa } from '@/data'
+import { parqueById, type ColumnaKanban, type TareaOperativa } from '@/data'
 import { usePreferences } from '@/context/PreferencesContext'
+import { useDataStore } from '@/context/DataStoreContext'
 import { formatMoneda } from '@/lib/format'
 import { cn } from '@/lib/utils'
 
@@ -27,6 +28,7 @@ function iniciales(nombre: string) {
 
 function TareaCard({ tarea }: { tarea: TareaOperativa }) {
   const { moneda } = usePreferences()
+  const { naveById } = useDataStore()
   const nave = naveById(tarea.naveId)
   const parque = nave ? parqueById(nave.parqueId) : undefined
 
@@ -65,6 +67,7 @@ function TareaCard({ tarea }: { tarea: TareaOperativa }) {
 
 export function KanbanBoard() {
   const { perfilSimulado } = usePreferences()
+  const { tareasOperativas, naveById } = useDataStore()
 
   return (
     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">

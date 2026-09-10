@@ -4,9 +4,9 @@ import { ChevronLeft, ChevronRight, Search } from 'lucide-react'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Button } from '@/components/ui/button'
 import { StatusBadge } from '@/components/shared/StatusBadge'
-import { naves, parqueById, contratoPorNaveId, inquilinoPorNaveId, inquilinoById, type EstatusOperativo } from '@/data'
+import { parqueById, inquilinoPorNaveId, inquilinoById, type EstatusOperativo } from '@/data'
 import { usePreferences } from '@/context/PreferencesContext'
-import { useNavesNuevas } from '@/context/NavesContext'
+import { useDataStore } from '@/context/DataStoreContext'
 import { formatMoneda, formatSuperficie } from '@/lib/format'
 import { diasParaVencer, mesesRestantes } from '@/lib/dates'
 
@@ -15,16 +15,14 @@ const TODOS_ESTATUS = 'Todos' as const
 
 export function DirectorioNavesTable() {
   const { moneda, unidad, parqueSeleccionado, perfilSimulado } = usePreferences()
-  const { navesNuevas } = useNavesNuevas()
+  const { naves, contratoPorNaveId } = useDataStore()
   const [busqueda, setBusqueda] = useState('')
   const [estatusFiltro, setEstatusFiltro] = useState<EstatusOperativo | typeof TODOS_ESTATUS>(TODOS_ESTATUS)
   const [pagina, setPagina] = useState(0)
 
-  const todasLasNaves = useMemo(() => [...naves, ...navesNuevas], [navesNuevas])
-
   const filas = useMemo(() => {
     const q = busqueda.trim().toLowerCase()
-    return todasLasNaves
+    return naves
       .filter((n) => perfilSimulado.region === 'todas' || parqueById(n.parqueId)?.region === perfilSimulado.region)
       .filter((n) => parqueSeleccionado === 'todos' || n.parqueId === parqueSeleccionado)
       .filter((n) => estatusFiltro === TODOS_ESTATUS || n.estatusOperativo === estatusFiltro)
@@ -38,7 +36,7 @@ export function DirectorioNavesTable() {
           inquilino?.nombreComercial.toLowerCase().includes(q)
         )
       })
-  }, [todasLasNaves, busqueda, estatusFiltro, parqueSeleccionado, perfilSimulado])
+  }, [naves, busqueda, estatusFiltro, parqueSeleccionado, perfilSimulado])
 
   const totalPaginas = Math.max(1, Math.ceil(filas.length / PAGE_SIZE))
   const paginaSegura = Math.min(pagina, totalPaginas - 1)

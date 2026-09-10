@@ -8,43 +8,44 @@ import { StatusBadge } from '@/components/shared/StatusBadge'
 import { AprobarRechazarDialog } from '@/components/shared/AprobarRechazarDialog'
 import { CalendarioMantenimiento } from '@/components/mantenimiento/CalendarioMantenimiento'
 import { usePreferences } from '@/context/PreferencesContext'
+import { useDataStore } from '@/context/DataStoreContext'
 import {
   matrizConfiabilidad,
-  ordenesTrabajo,
   contratistas,
-  naveById,
   parqueById,
   contratistaById,
-  proyectoMayorEnCurso,
   pmCumplimientoPct,
   PM_CUMPLIDAS,
   PM_META_ANUAL,
-  correctivosActivos,
   opexEjecutadoPct,
   OPEX_EJECUTADO_YTD_USD,
   OPEX_PRESUPUESTO_ANUAL_USD,
-  capexAutorizadoAnio,
-  capexProyectosMayores,
-  slaPromedioResolucionHoras,
   SLA_META_HORAS,
-  type EstatusTicket,
   type OrdenTrabajo,
 } from '@/data'
+import { HOY } from '@/lib/dates'
 import { formatMoneda, formatPct } from '@/lib/format'
 
 export function MantenimientoPage() {
   const { moneda, perfilSimulado } = usePreferences()
-  const correctivos = correctivosActivos()
-  const proyectoMayor = proyectoMayorEnCurso()
+  const {
+    ordenesTrabajo,
+    naveById,
+    proyectoMayorEnCurso: proyectoMayor,
+    correctivosActivos: correctivos,
+    capexAutorizadoAnio,
+    capexProyectosMayores,
+    slaPromedioResolucionHoras,
+    editarOrden,
+  } = useDataStore()
   const naveProyecto = proyectoMayor ? naveById(proyectoMayor.naveId) : null
   const parqueProyecto = naveProyecto ? parqueById(naveProyecto.parqueId) : null
 
-  // Interacción ligera de la maqueta: cambia el estado en la sesión del
-  // navegador (sin persistir) cuando el Facility Manager valida o rechaza
-  // el cierre de una orden en "Pendiente de Evidencia".
-  const [overrides, setOverrides] = useState<Record<string, EstatusTicket>>({})
+  // Interacción ligera de la maqueta (sin persistir entre sesiones): cambia el
+  // estado real de la orden vía DataStoreContext cuando el Facility Manager
+  // valida o rechaza el cierre de una orden en "Pendiente de Evidencia" — el
+  // cambio se refleja en todas las pantallas que lean esta misma orden.
   const [otParaValidar, setOtParaValidar] = useState<OrdenTrabajo | null>(null)
-  const estatusEfectivo = (o: OrdenTrabajo) => overrides[o.id] ?? o.estatus
 
   return (
     <div className="flex flex-col gap-6">
@@ -91,13 +92,13 @@ export function MantenimientoPage() {
         <KpiCard
           etiqueta="CapEx Autorizado"
           icono={DollarSign}
-          valor={formatMoneda(capexAutorizadoAnio(), moneda)}
-          detalle={`${capexProyectosMayores()} proyectos mayores`}
+          valor={formatMoneda(capexAutorizadoAnio, moneda)}
+          detalle={`${capexProyectosMayores} proyectos mayores`}
         />
         <KpiCard
           etiqueta="SLA Promedio de Resolución"
           icono={Clock}
-          valor={`${slaPromedioResolucionHoras()} h`}
+          valor={`${slaPromedioResolucionHoras} h`}
           detalle={`Meta interna ${SLA_META_HORAS} h`}
         />
       </div>
@@ -168,13 +169,13 @@ export function MantenimientoPage() {
                 </TableHeader>
                 <TableBody>
                   {ordenesTrabajo
-                    .filter((o) => estatusEfectivo(o) !== 'Validado' && estatusEfectivo(o) !== 'Cancelada')
+                    .filter((o) => o.estatus !== 'Validado' && o.estatus !== 'Cancelada')
                     .filter((o) => perfilSimulado.region === 'todas' || parqueById(naveById(o.naveId)!.parqueId)?.region === perfilSimulado.region)
                     .map((o) => {
                       const nave = naveById(o.naveId)!
                       const parque = parqueById(nave.parqueId)!
                       const contratista = contratistaById(o.contratistaId)
-                      const estatus = estatusEfectivo(o)
+                      const estatus = o.estatus
                       return (
                         <TableRow key={o.id}>
                           <TableCell>
@@ -273,8 +274,8 @@ export function MantenimientoPage() {
         descripcion={otParaValidar ? `${otParaValidar.categoria} — ${otParaValidar.descripcion}` : undefined}
         etiquetaAprobar="Validar y Cerrar"
         etiquetaRechazar="Rechazar Cierre"
-        onAprobar={() => otParaValidar && setOverrides((prev) => ({ ...prev, [otParaValidar.id]: 'Validado' }))}
-        onRechazar={() => otParaValidar && setOverrides((prev) => ({ ...prev, [otParaValidar.id]: 'En ejecución' }))}
+        onAprobar={() => otParaValidar && editarOrden(otParaValidar.id, { estatus: 'Validado', fechaCierre: HOY.toISOString().slice(0, 10) })}
+        onRechazar={() => otParaValidar && editarOrden(otParaValidar.id, { estatus: 'En ejecución' })}
       />
     </div>
   )

@@ -173,4 +173,5 @@ export const documentos: DocumentoPermiso[] = naves.flatMap((nave, idx) => {
   return docs
 })
 
-export const documentosPorNave = (naveId: string) => documentos.filter((d) => d.naveId === naveId)
+export const documentosPorNave = (naveId: string, documentosInput: DocumentoPermiso[] = documentos) =>
+  documentosInput.filter((d) => d.naveId === naveId)

@@ -115,14 +115,15 @@ export const proyectosCapex: ProyectoCapex[] = [
   },
 ]
 
-export const proyectoCapexPorNave = (naveId: string) => proyectosCapex.filter((p) => p.naveId === naveId)
+export const proyectoCapexPorNave = (naveId: string, proyectosInput: ProyectoCapex[] = proyectosCapex) =>
+  proyectosInput.filter((p) => p.naveId === naveId)
 
-export const capexAutorizadoTotal = () =>
-  proyectosCapex
+export const capexAutorizadoTotal = (proyectosInput: ProyectoCapex[] = proyectosCapex) =>
+  proyectosInput
     .filter((p) => p.estatusComite === 'Aprobado por Dirección' || p.estatusComite === 'En Ejecución' || p.estatusComite === 'Concluido')
     .reduce((acc, p) => acc + p.inversionEstimada, 0)
 
-export const capexDisponiblePct = () => {
-  const usado = capexAutorizadoTotal()
+export const capexDisponiblePct = (proyectosInput: ProyectoCapex[] = proyectosCapex) => {
+  const usado = capexAutorizadoTotal(proyectosInput)
   return Math.round(((CAPEX_BOLSA_ANUAL_USD - usado) / CAPEX_BOLSA_ANUAL_USD) * 100)
 }

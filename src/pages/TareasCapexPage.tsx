@@ -8,19 +8,13 @@ import { CapexTable } from '@/components/tareas/CapexTable'
 import { CotizacionCard } from '@/components/tareas/CotizacionCard'
 import { TareasVivasFlow } from '@/components/tareas/TareasVivasFlow'
 import { usePreferences } from '@/context/PreferencesContext'
-import {
-  alertas,
-  proyectosCapex,
-  solicitudesCotizacion,
-  tareasVivas,
-  CAPEX_BOLSA_ANUAL_USD,
-  capexAutorizadoTotal,
-  capexDisponiblePct,
-} from '@/data'
+import { useDataStore } from '@/context/DataStoreContext'
+import { solicitudesCotizacion, CAPEX_BOLSA_ANUAL_USD } from '@/data'
 import { formatMoneda, formatPct } from '@/lib/format'
 
 export function TareasCapexPage() {
   const { moneda } = usePreferences()
+  const { alertas, proyectosCapex, tareasVivas, capexAutorizadoTotal, capexDisponiblePct } = useDataStore()
 
   const vencimientosCriticos = alertas.filter((a) => a.urgencia === 'Crítico Inminente' && a.tipo !== 'SLA de Ticket').length
   const capexEnRevision = proyectosCapex.filter((p) => p.estatusComite === 'En Revisión Comité').length
@@ -81,8 +75,8 @@ export function TareasCapexPage() {
             <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
               <h3 className="text-sm font-semibold text-foreground">Cartera de Proyectos de Inversión Patrimonial (CapEx)</h3>
               <span className="tabular text-xs text-muted-foreground">
-                Bolsa autorizada {formatMoneda(CAPEX_BOLSA_ANUAL_USD, moneda)} · {formatPct(capexDisponiblePct())} disponible ·{' '}
-                {formatMoneda(capexAutorizadoTotal(), moneda)} comprometido
+                Bolsa autorizada {formatMoneda(CAPEX_BOLSA_ANUAL_USD, moneda)} · {formatPct(capexDisponiblePct)} disponible ·{' '}
+                {formatMoneda(capexAutorizadoTotal, moneda)} comprometido
               </span>
             </div>
             <CapexTable />

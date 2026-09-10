@@ -1,12 +1,14 @@
 import { Card, CardContent } from '@/components/ui/card'
 import { StatusBadge } from '@/components/shared/StatusBadge'
-import { sistemasPorNave, ordenesPorNave, type Nave } from '@/data'
+import { sistemasPorNave, type Nave } from '@/data'
 import { usePreferences } from '@/context/PreferencesContext'
+import { useDataStore } from '@/context/DataStoreContext'
 import { formatMoneda } from '@/lib/format'
 import { formatFecha } from '@/lib/dates'
 
 export function EquiposMantenimientoTab({ nave }: { nave: Nave }) {
   const { moneda } = usePreferences()
+  const { ordenesPorNave } = useDataStore()
   const sistemas = sistemasPorNave(nave.id)
   const ordenes = ordenesPorNave(nave.id)
 

@@ -5,7 +5,8 @@ import { Logo } from '@/components/shared/Logo'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet'
 import { usePreferences } from '@/context/PreferencesContext'
-import { parques, parqueById, ocupacionGlobalPct } from '@/data'
+import { useDataStore } from '@/context/DataStoreContext'
+import { parques, parqueById } from '@/data'
 import { cn } from '@/lib/utils'
 
 // Nave representativa por región — así el atajo de "Expediente Digital 360°"
@@ -19,7 +20,7 @@ const NAVE_REPRESENTATIVA_POR_REGION: Record<string, string> = {
 
 function SidebarBody({ collapsed, onNavigate }: { collapsed: boolean; onNavigate?: () => void }) {
   const { parqueSeleccionado, setParqueSeleccionado, perfilSimulado } = usePreferences()
-  const ocupacion = ocupacionGlobalPct()
+  const { ocupacionGlobalPct: ocupacion } = useDataStore()
 
   const navItems = [
     { to: '/', label: 'Portafolio de Naves', icon: Building2, end: true },

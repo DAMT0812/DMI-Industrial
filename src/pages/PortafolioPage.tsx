@@ -9,24 +9,8 @@ import { DirectorioNavesTable } from '@/components/portafolio/DirectorioNavesTab
 import { AltaInmuebleDialog } from '@/components/portafolio/AltaInmuebleDialog'
 import { PillToggle } from '@/components/shared/ToggleGroup'
 import { usePreferences } from '@/context/PreferencesContext'
-import {
-  alertas,
-  requerimientosCriticos,
-  vencimientosContrato90Dias,
-  totalNaves,
-  navesOcupadas,
-  ocupacionGlobalPct,
-  glaTotal,
-  glaDisponible,
-  ingresoMensualTotalUSD,
-  PRESUPUESTO_MENSUAL_USD,
-  cobranzaAlDiaPct,
-  certificacionesLEEDCount,
-  cumplimientoSTPSPromedio,
-  parques,
-  CAPEX_BOLSA_ANUAL_USD,
-  capexAutorizadoTotal,
-} from '@/data'
+import { useDataStore } from '@/context/DataStoreContext'
+import { parques, PRESUPUESTO_MENSUAL_USD, CAPEX_BOLSA_ANUAL_USD } from '@/data'
 import { formatMoneda, formatPct, formatSuperficie } from '@/lib/format'
 import { useState } from 'react'
 
@@ -36,11 +20,26 @@ export function PortafolioPage() {
   const { moneda, unidad } = usePreferences()
   const [periodo, setPeriodo] = useState<(typeof PERIODOS)[number]>('T3 2026')
   const [altaAbierta, setAltaAbierta] = useState(false)
+  const {
+    alertas,
+    requerimientosCriticos,
+    vencimientosContrato90Dias,
+    totalNaves,
+    navesOcupadas,
+    ocupacionGlobalPct,
+    glaTotal,
+    glaDisponible,
+    ingresoMensualTotalUSD,
+    cobranzaAlDiaPct,
+    certificacionesLEEDCount,
+    cumplimientoSTPSPromedio,
+    capexAutorizadoTotal,
+  } = useDataStore()
 
-  const ocupacion = ocupacionGlobalPct()
-  const ingresoMensual = ingresoMensualTotalUSD()
+  const ocupacion = ocupacionGlobalPct
+  const ingresoMensual = ingresoMensualTotalUSD
   const varianzaPresupuesto = Math.round(((ingresoMensual - PRESUPUESTO_MENSUAL_USD) / PRESUPUESTO_MENSUAL_USD) * 1000) / 10
-  const requerimientos = requerimientosCriticos()
+  const requerimientos = requerimientosCriticos
 
   return (
     <div className="flex flex-col gap-6">
@@ -51,7 +50,7 @@ export function PortafolioPage() {
           </div>
           <h1 className="mt-1 text-headline-lg-mobile sm:text-headline-lg text-primary">Supervisión Ejecutiva de Activos Industriales</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            {parques.length} parques industriales · {totalNaves()} naves · cobertura Bajío, Norte y Occidente
+            {parques.length} parques industriales · {totalNaves} naves · cobertura Bajío, Norte y Occidente
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -72,14 +71,14 @@ export function PortafolioPage() {
           etiqueta="Ocupación Global"
           icono={Building2}
           valor={formatPct(ocupacion)}
-          detalle={`${navesOcupadas()} de ${totalNaves()} naves ocupadas`}
+          detalle={`${navesOcupadas} de ${totalNaves} naves ocupadas`}
           progreso={ocupacion}
         />
         <KpiCard
           etiqueta="Área Bruta (GLA)"
           icono={Gauge}
-          valor={formatSuperficie(glaTotal(), unidad)}
-          detalle={`${formatSuperficie(glaDisponible(), unidad)} disponibles`}
+          valor={formatSuperficie(glaTotal, unidad)}
+          detalle={`${formatSuperficie(glaDisponible, unidad)} disponibles`}
         />
         <KpiCard
           etiqueta="Ingreso Mensual (NOI)"
@@ -91,13 +90,13 @@ export function PortafolioPage() {
         <KpiCard
           etiqueta="Cobranza & SLAs"
           icono={Percent}
-          valor={formatPct(cobranzaAlDiaPct())}
+          valor={formatPct(cobranzaAlDiaPct)}
           detalle="Facturación cobrada / timbrada al día"
         />
         <KpiCard
           etiqueta="Vencimientos ≤ 90 días"
           icono={ShieldCheck}
-          valor={String(vencimientosContrato90Dias())}
+          valor={String(vencimientosContrato90Dias)}
           detalle="Contratos en negociación activa"
         />
       </div>
@@ -143,19 +142,19 @@ export function PortafolioPage() {
         <KpiCard
           etiqueta="CapEx Programado del Año"
           icono={DollarSign}
-          valor={formatMoneda(capexAutorizadoTotal(), moneda)}
+          valor={formatMoneda(capexAutorizadoTotal, moneda)}
           detalle={`de ${formatMoneda(CAPEX_BOLSA_ANUAL_USD, moneda)} autorizados`}
         />
         <KpiCard
           etiqueta="Certificaciones LEED & ESG"
           icono={Award}
-          valor={`${certificacionesLEEDCount()} naves`}
-          detalle={`de ${totalNaves()} activos del portafolio`}
+          valor={`${certificacionesLEEDCount} naves`}
+          detalle={`de ${totalNaves} activos del portafolio`}
         />
         <KpiCard
           etiqueta="Cumplimiento Regulatorio STPS"
           icono={ShieldCheck}
-          valor={formatPct(cumplimientoSTPSPromedio())}
+          valor={formatPct(cumplimientoSTPSPromedio)}
           detalle="Promedio de cumplimiento NOM vigente"
         />
       </div>

@@ -1,4 +1,5 @@
-import { naveById, parqueById, tareasVivas, type TareaViva } from '@/data'
+import { parqueById, type TareaViva } from '@/data'
+import { useDataStore } from '@/context/DataStoreContext'
 import { cn } from '@/lib/utils'
 
 const COLUMNAS: { key: TareaViva['columna']; titulo: string; tono: string }[] = [
@@ -8,6 +9,7 @@ const COLUMNAS: { key: TareaViva['columna']; titulo: string; tono: string }[] = 
 ]
 
 export function TareasVivasFlow() {
+  const { tareasVivas, naveById } = useDataStore()
   return (
     <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
       {COLUMNAS.map((col) => {

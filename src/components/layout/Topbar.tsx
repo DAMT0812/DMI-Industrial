@@ -12,10 +12,12 @@ import {
 import { PillToggle } from '@/components/shared/ToggleGroup'
 import { MobileSidebar } from '@/components/layout/Sidebar'
 import { usePreferences } from '@/context/PreferencesContext'
-import { alertas, perfilesSimulados } from '@/data'
+import { useDataStore } from '@/context/DataStoreContext'
+import { perfilesSimulados } from '@/data'
 
 export function Topbar() {
   const { moneda, setMoneda, unidad, setUnidad, perfilSimulado, setPerfilSimulado } = usePreferences()
+  const { alertas } = useDataStore()
   const notificacionesPendientes = alertas.filter((a) => a.estatus === 'Pendiente').length
 
   return (

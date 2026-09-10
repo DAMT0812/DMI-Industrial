@@ -71,5 +71,7 @@ export const ordenesTrabajo: OrdenTrabajo[] = seeds.map((s, idx) => {
   } satisfies OrdenTrabajo
 })
 
-export const ordenesPorNave = (naveId: string) => ordenesTrabajo.filter((o) => o.naveId === naveId)
-export const ordenesAbiertas = () => ordenesTrabajo.filter((o) => o.estatus !== 'Validado' && o.estatus !== 'Cancelada')
+export const ordenesPorNave = (naveId: string, ordenesInput: OrdenTrabajo[] = ordenesTrabajo) =>
+  ordenesInput.filter((o) => o.naveId === naveId)
+export const ordenesAbiertas = (ordenesInput: OrdenTrabajo[] = ordenesTrabajo) =>
+  ordenesInput.filter((o) => o.estatus !== 'Validado' && o.estatus !== 'Cancelada')

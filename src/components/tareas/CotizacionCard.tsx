@@ -1,11 +1,13 @@
 import { Button } from '@/components/ui/button'
-import { naveById, parqueById, type SolicitudCotizacion } from '@/data'
+import { parqueById, type SolicitudCotizacion } from '@/data'
 import { usePreferences } from '@/context/PreferencesContext'
+import { useDataStore } from '@/context/DataStoreContext'
 import { formatMoneda } from '@/lib/format'
 import { cn } from '@/lib/utils'
 
 export function CotizacionCard({ solicitud }: { solicitud: SolicitudCotizacion }) {
   const { moneda } = usePreferences()
+  const { naveById } = useDataStore()
   const nave = naveById(solicitud.naveId)
   const parque = nave ? parqueById(nave.parqueId) : undefined
   const listo = solicitud.recibidas === solicitud.total

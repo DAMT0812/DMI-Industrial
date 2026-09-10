@@ -24,8 +24,8 @@ function nextId() {
   return `ALT-${String(contador).padStart(3, '0')}`
 }
 
-function alertasDePolizas(): AlertaVencimiento[] {
-  return documentos
+function alertasDePolizas(documentosInput: typeof documentos): AlertaVencimiento[] {
+  return documentosInput
     .filter((d) => (d.tipo === 'Póliza Multirriesgo Industrial' || d.tipo === 'Póliza de Responsabilidad Civil') && d.fechaVencimiento)
     .map((d) => {
       const dias = diasParaVencer(d.fechaVencimiento)!
@@ -48,8 +48,8 @@ function alertasDePolizas(): AlertaVencimiento[] {
     }))
 }
 
-function alertasDePredial(): AlertaVencimiento[] {
-  return documentos
+function alertasDePredial(documentosInput: typeof documentos): AlertaVencimiento[] {
+  return documentosInput
     .filter((d) => d.tipo === 'Predial' && d.fechaVencimiento)
     .map((d) => ({ d, dias: diasParaVencer(d.fechaVencimiento)! }))
     .filter(({ dias, d }) => dias <= 60 || d.estatusJuridico === 'En mora / fuera de plazo')
@@ -68,8 +68,8 @@ function alertasDePredial(): AlertaVencimiento[] {
     }))
 }
 
-function alertasDeProteccionCivil(): AlertaVencimiento[] {
-  return documentos
+function alertasDeProteccionCivil(documentosInput: typeof documentos): AlertaVencimiento[] {
+  return documentosInput
     .filter((d) => d.tipo === 'Dictamen de Protección Civil' && d.fechaVencimiento)
     .map((d) => ({ d, dias: diasParaVencer(d.fechaVencimiento)! }))
     .filter(({ dias }) => dias <= 30)
@@ -89,8 +89,8 @@ function alertasDeProteccionCivil(): AlertaVencimiento[] {
     }))
 }
 
-function alertasDeLicenciaAmbiental(): AlertaVencimiento[] {
-  return documentos
+function alertasDeLicenciaAmbiental(documentosInput: typeof documentos): AlertaVencimiento[] {
+  return documentosInput
     .filter((d) => d.tipo === 'Licencia Ambiental Estatal' && d.fechaVencimiento)
     .map((d) => ({ d, dias: diasParaVencer(d.fechaVencimiento)! }))
     .filter(({ dias }) => dias <= 90)
@@ -110,8 +110,8 @@ function alertasDeLicenciaAmbiental(): AlertaVencimiento[] {
     }))
 }
 
-function alertasDeLeasing(): AlertaVencimiento[] {
-  return contratos
+function alertasDeLeasing(contratosInput: typeof contratos): AlertaVencimiento[] {
+  return contratosInput
     .map((c) => ({ c, dias: diasParaVencer(c.fechaVencimiento)! }))
     .filter(({ dias }) => dias <= 180)
     .sort((a, b) => a.dias - b.dias)
@@ -130,8 +130,8 @@ function alertasDeLeasing(): AlertaVencimiento[] {
     }))
 }
 
-function alertasDeSLA(): AlertaVencimiento[] {
-  return ordenesTrabajo
+function alertasDeSLA(ordenesInput: typeof ordenesTrabajo): AlertaVencimiento[] {
+  return ordenesInput
     .filter((o) => o.estatus !== 'Validado' && o.estatus !== 'Cancelada' && (o.prioridad === 'Crítica' || o.prioridad === 'Alta'))
     .slice(0, 2)
     .map((o) => ({
@@ -148,16 +148,25 @@ function alertasDeSLA(): AlertaVencimiento[] {
     }))
 }
 
-export const alertas: AlertaVencimiento[] = [
-  ...alertasDePolizas(),
-  ...alertasDePredial(),
-  ...alertasDeProteccionCivil(),
-  ...alertasDeLicenciaAmbiental(),
-  ...alertasDeLeasing(),
-  ...alertasDeSLA(),
-].sort((a, b) => a.diasParaVencer - b.diasParaVencer)
+export function calcularAlertas(
+  documentosInput: typeof documentos = documentos,
+  contratosInput: typeof contratos = contratos,
+  ordenesInput: typeof ordenesTrabajo = ordenesTrabajo,
+): AlertaVencimiento[] {
+  return [
+    ...alertasDePolizas(documentosInput),
+    ...alertasDePredial(documentosInput),
+    ...alertasDeProteccionCivil(documentosInput),
+    ...alertasDeLicenciaAmbiental(documentosInput),
+    ...alertasDeLeasing(contratosInput),
+    ...alertasDeSLA(ordenesInput),
+  ].sort((a, b) => a.diasParaVencer - b.diasParaVencer)
+}
 
-export const requerimientosCriticos = () => alertas.filter((a) => a.urgencia === 'Crítico Inminente').length
+export const alertas: AlertaVencimiento[] = calcularAlertas()
 
-export const vencimientosContrato90Dias = () =>
-  contratos.filter((c) => (diasParaVencer(c.fechaVencimiento) ?? 9999) <= 90).length
+export const requerimientosCriticos = (alertasInput: AlertaVencimiento[] = alertas) =>
+  alertasInput.filter((a) => a.urgencia === 'Crítico Inminente').length
+
+export const vencimientosContrato90Dias = (contratosInput: typeof contratos = contratos) =>
+  contratosInput.filter((c) => (diasParaVencer(c.fechaVencimiento) ?? 9999) <= 90).length

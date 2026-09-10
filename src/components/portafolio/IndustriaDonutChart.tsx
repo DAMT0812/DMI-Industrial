@@ -1,11 +1,12 @@
 import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from 'recharts'
-import { desgloseIndustria, totalInquilinosActivos } from '@/data'
+import { totalInquilinosActivos } from '@/data'
+import { useDataStore } from '@/context/DataStoreContext'
 import { formatSuperficie, type UnidadSuperficie } from '@/lib/format'
 
 const COLORES = ['var(--color-brand-primary)', 'var(--color-brand-cobalt)', 'var(--color-brand-pine)', 'var(--color-brand-gray)']
 
 export function IndustriaDonutChart({ unidad }: { unidad: UnidadSuperficie }) {
-  const data = desgloseIndustria()
+  const { desgloseIndustria: data } = useDataStore()
   const total = totalInquilinosActivos()
 
   return (

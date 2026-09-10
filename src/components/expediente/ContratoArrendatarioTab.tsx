@@ -4,7 +4,6 @@ import { Button } from '@/components/ui/button'
 import { StatusBadge } from '@/components/shared/StatusBadge'
 import { AprobarRechazarDialog } from '@/components/shared/AprobarRechazarDialog'
 import {
-  contratoPorNaveId,
   inquilinoPorNaveId,
   inquilinoById,
   parqueById,
@@ -16,12 +15,14 @@ import {
   type Nave,
 } from '@/data'
 import { usePreferences } from '@/context/PreferencesContext'
+import { useDataStore } from '@/context/DataStoreContext'
 import { formatMoneda } from '@/lib/format'
 import { formatFecha } from '@/lib/dates'
 import { Mail, Phone, ShieldAlert, Users } from 'lucide-react'
 
 export function ContratoArrendatarioTab({ nave }: { nave: Nave }) {
   const { moneda } = usePreferences()
+  const { contratoPorNaveId, editarContrato } = useDataStore()
   const contrato = contratoPorNaveId(nave.id)
   const inquilino = inquilinoById(inquilinoPorNaveId[nave.id] ?? '')
   const region = parqueById(nave.parqueId)!.region
@@ -30,12 +31,13 @@ export function ContratoArrendatarioTab({ nave }: { nave: Nave }) {
   const broker = brokerById(brokerPorNaveId[nave.id])
   const emergencia = contactosEmergenciaPorNave(nave.id)
 
-  // Interacción ligera de la maqueta (sin persistir): Dirección aprueba o
-  // rechaza la renovación; un rechazo regresa el contrato a "En Revisión"
-  // para continuar la negociación, nunca queda en "Rechazado".
-  const [estatusOverride, setEstatusOverride] = useState<string | null>(null)
+  // Interacción ligera de la maqueta (sin persistir entre sesiones): Dirección
+  // aprueba o rechaza la renovación vía DataStoreContext; un rechazo regresa
+  // el contrato a "En Revisión" para continuar la negociación, nunca queda en
+  // "Rechazado". El cambio se refleja en cualquier otra pantalla que lea este
+  // mismo contrato (Directorio, alertas de vencimiento, etc.).
   const [dialogoAbierto, setDialogoAbierto] = useState(false)
-  const estatusMostrado = estatusOverride ?? contrato?.estatus
+  const estatusMostrado = contrato?.estatus
 
   return (
     <div className="flex flex-col gap-6">
@@ -144,8 +146,8 @@ export function ContratoArrendatarioTab({ nave }: { nave: Nave }) {
           descripcion={`${inquilino?.nombreComercial} — vence ${formatFecha(contrato.fechaVencimiento)}`}
           etiquetaAprobar="Aprobar Renovación"
           etiquetaRechazar="Rechazar Términos"
-          onAprobar={() => setEstatusOverride('Vigente')}
-          onRechazar={() => setEstatusOverride('En Revisión')}
+          onAprobar={() => editarContrato(contrato.id, { estatus: 'Vigente' })}
+          onRechazar={() => editarContrato(contrato.id, { estatus: 'En Revisión' })}
         />
       )}
     </div>

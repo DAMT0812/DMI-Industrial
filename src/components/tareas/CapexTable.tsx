@@ -3,12 +3,14 @@ import { Button } from '@/components/ui/button'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog'
 import { StatusBadge } from '@/components/shared/StatusBadge'
-import { proyectosCapex, naveById, parqueById, type ProyectoCapex } from '@/data'
+import { parqueById, type ProyectoCapex } from '@/data'
 import { usePreferences } from '@/context/PreferencesContext'
+import { useDataStore } from '@/context/DataStoreContext'
 import { formatMoneda, formatSuperficie } from '@/lib/format'
 
 export function CapexTable() {
   const { moneda, unidad } = usePreferences()
+  const { proyectosCapex, naveById } = useDataStore()
   const [seleccionado, setSeleccionado] = useState<ProyectoCapex | null>(null)
   const [votos, setVotos] = useState<Record<string, boolean>>({})
 

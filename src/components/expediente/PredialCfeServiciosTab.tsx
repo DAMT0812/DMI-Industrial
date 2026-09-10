@@ -2,13 +2,15 @@ import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { StatusBadge } from '@/components/shared/StatusBadge'
 import { DocumentoDialog } from '@/components/shared/DocumentoDialog'
-import { documentosPorNave, type TipoDocumento, type Nave } from '@/data'
+import { type TipoDocumento, type Nave } from '@/data'
+import { useDataStore } from '@/context/DataStoreContext'
 import { formatFecha, diasParaVencer } from '@/lib/dates'
 import { FileCheck2 } from 'lucide-react'
 
 const TIPOS_SERVICIOS: TipoDocumento[] = ['Predial', 'Contrato CFE', 'Contrato de Agua y Drenaje', 'Licencia Ambiental Estatal']
 
 export function PredialCfeServiciosTab({ nave }: { nave: Nave }) {
+  const { documentosPorNave } = useDataStore()
   const documentos = documentosPorNave(nave.id).filter((d) => TIPOS_SERVICIOS.includes(d.tipo))
   const [archivos, setArchivos] = useState<Record<string, File>>({})
   const [docAbierto, setDocAbierto] = useState<string | null>(null)

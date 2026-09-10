@@ -1,5 +1,5 @@
-import { eventosCalendario } from '@/data'
-import { naveById, parqueById } from '@/data'
+import { eventosCalendario, parqueById } from '@/data'
+import { useDataStore } from '@/context/DataStoreContext'
 import { cn } from '@/lib/utils'
 
 const DIAS_SEMANA = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom']
@@ -13,6 +13,7 @@ const COLOR_TIPO: Record<string, string> = {
 }
 
 export function CalendarioMantenimiento() {
+  const { naveById } = useDataStore()
   const dias = Array.from({ length: 28 }, (_, i) => i + 1)
 
   return (

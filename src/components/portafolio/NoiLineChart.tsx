@@ -1,9 +1,10 @@
 import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
-import { serieNOIAnual } from '@/data'
+import { useDataStore } from '@/context/DataStoreContext'
 import { convertirMoneda, formatValorCompacto, type Moneda } from '@/lib/format'
 
 export function NoiLineChart({ moneda }: { moneda: Moneda }) {
-  const serie = serieNOIAnual().map((p) => ({
+  const { serieNOIAnual } = useDataStore()
+  const serie = serieNOIAnual.map((p) => ({
     mes: p.mes,
     ejecutado: p.ejecutadoUSD !== null ? convertirMoneda(p.ejecutadoUSD, moneda) : null,
     proyeccion: p.proyeccionUSD !== null ? convertirMoneda(p.proyeccionUSD, moneda) : null,

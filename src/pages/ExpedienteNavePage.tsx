@@ -9,16 +9,16 @@ import { EquiposMantenimientoTab } from '@/components/expediente/EquiposMantenim
 import { PredialCfeServiciosTab } from '@/components/expediente/PredialCfeServiciosTab'
 import { MultimediaTab } from '@/components/expediente/MultimediaTab'
 import { usePreferences } from '@/context/PreferencesContext'
-import { useNavesNuevas } from '@/context/NavesContext'
-import { naveById, parqueById, contratoPorNaveId, inquilinoPorNaveId, inquilinoById } from '@/data'
+import { useDataStore } from '@/context/DataStoreContext'
+import { parqueById, inquilinoPorNaveId, inquilinoById } from '@/data'
 import { formatMoneda, formatSuperficie } from '@/lib/format'
 import { mesesRestantes } from '@/lib/dates'
 
 export function ExpedienteNavePage() {
   const { naveId } = useParams()
   const { moneda, unidad, perfilSimulado } = usePreferences()
-  const { navesNuevas } = useNavesNuevas()
-  const nave = naveId ? (naveById(naveId) ?? navesNuevas.find((n) => n.id === naveId)) : undefined
+  const { naveById, contratoPorNaveId } = useDataStore()
+  const nave = naveId ? naveById(naveId) : undefined
 
   if (!nave) return <Navigate to="/" replace />
 

@@ -4,7 +4,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Button } from '@/components/ui/button'
 import { StatusBadge } from '@/components/shared/StatusBadge'
 import { DocumentoDialog } from '@/components/shared/DocumentoDialog'
-import { documentosPorNave, estudiosPorNave, propietarioPorNave, contratistas, type Nave } from '@/data'
+import { estudiosPorNave, propietarioPorNave, contratistas, type Nave } from '@/data'
+import { useDataStore } from '@/context/DataStoreContext'
 import { formatFecha } from '@/lib/dates'
 import { FileDown, FileText, Landmark } from 'lucide-react'
 
@@ -18,6 +19,7 @@ const PLANOS = [
 ]
 
 export function ObraConstruccionTab({ nave }: { nave: Nave }) {
+  const { documentosPorNave } = useDataStore()
   const contratistaObra = contratistas[nave.id.charCodeAt(nave.id.length - 1) % 2 === 0 ? 7 : 9]
   const inversionCapExEjecutada = Math.round(nave.superficieConstruccion * 620)
   const permisos = documentosPorNave(nave.id).filter((d) => OBRA_TIPOS.includes(d.tipo))

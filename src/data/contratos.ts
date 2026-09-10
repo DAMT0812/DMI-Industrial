@@ -71,4 +71,5 @@ export const contratos: ContratoArrendamiento[] = deals.map((d, idx) => {
   }
 })
 
-export const contratoPorNaveId = (naveId: string) => contratos.find((c) => c.naveId === naveId)
+export const contratoPorNaveId = (naveId: string, contratosInput: ContratoArrendamiento[] = contratos) =>
+  contratosInput.find((c) => c.naveId === naveId)

@@ -1,7 +1,7 @@
 import { BrowserRouter, Route, Routes } from 'react-router-dom'
 import { AppShell } from '@/components/layout/AppShell'
 import { PreferencesProvider } from '@/context/PreferencesContext'
-import { NavesProvider } from '@/context/NavesContext'
+import { DataStoreProvider } from '@/context/DataStoreContext'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import { PortafolioPage } from '@/pages/PortafolioPage'
 import { MantenimientoPage } from '@/pages/MantenimientoPage'
@@ -11,7 +11,7 @@ import { ExpedienteNavePage } from '@/pages/ExpedienteNavePage'
 function App() {
   return (
     <PreferencesProvider>
-      <NavesProvider>
+      <DataStoreProvider>
         <TooltipProvider>
           <BrowserRouter>
             <Routes>
@@ -24,7 +24,7 @@ function App() {
             </Routes>
           </BrowserRouter>
         </TooltipProvider>
-      </NavesProvider>
+      </DataStoreProvider>
     </PreferencesProvider>
   )
 }

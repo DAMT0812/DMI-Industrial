@@ -528,4 +528,4 @@ export const naves: Nave[] = navesSeed.map((n) => ({
   tipoIluminacion: tipoIluminacionPara(n.fechaEntrega),
 }))
 
-export const naveById = (id: string) => naves.find((n) => n.id === id)
+export const naveById = (id: string, navesInput: Nave[] = naves) => navesInput.find((n) => n.id === id)

@@ -1,28 +1,30 @@
 import { naves } from './naves'
 import { contratos } from './contratos'
 import { inquilinos, inquilinoPorNaveId } from './inquilinos'
-import type { Industria } from './types'
+import type { ContratoArrendamiento, Industria, Nave } from './types'
 
-export const totalNaves = () => naves.length
-export const navesOcupadas = () => naves.filter((n) => n.ocupada).length
-export const ocupacionGlobalPct = () => Math.round((navesOcupadas() / totalNaves()) * 1000) / 10
+export const totalNaves = (navesInput: Nave[] = naves) => navesInput.length
+export const navesOcupadas = (navesInput: Nave[] = naves) => navesInput.filter((n) => n.ocupada).length
+export const ocupacionGlobalPct = (navesInput: Nave[] = naves) =>
+  Math.round((navesOcupadas(navesInput) / totalNaves(navesInput)) * 1000) / 10
 
-export const glaTotal = () => naves.reduce((acc, n) => acc + n.gla, 0)
-export const glaDisponible = () => naves.filter((n) => !n.ocupada).reduce((acc, n) => acc + n.gla, 0)
+export const glaTotal = (navesInput: Nave[] = naves) => navesInput.reduce((acc, n) => acc + n.gla, 0)
+export const glaDisponible = (navesInput: Nave[] = naves) => navesInput.filter((n) => !n.ocupada).reduce((acc, n) => acc + n.gla, 0)
 
-export const ingresoMensualTotalUSD = () => contratos.reduce((acc, c) => acc + c.rentaBaseMensual + c.cam, 0)
+export const ingresoMensualTotalUSD = (contratosInput: ContratoArrendamiento[] = contratos) =>
+  contratosInput.reduce((acc, c) => acc + c.rentaBaseMensual + c.cam, 0)
 
 export const PRESUPUESTO_MENSUAL_USD = 1_905_000
 export const CAP_RATE_PCT = 8.4
 
-export const cobranzaAlDiaPct = () => {
-  const enMora = contratos.filter((c) => c.estatus === 'En Mora').length
-  return Math.round(((contratos.length - enMora) / contratos.length) * 1000) / 10
+export const cobranzaAlDiaPct = (contratosInput: ContratoArrendamiento[] = contratos) => {
+  const enMora = contratosInput.filter((c) => c.estatus === 'En Mora').length
+  return Math.round(((contratosInput.length - enMora) / contratosInput.length) * 1000) / 10
 }
 
-export const certificacionesLEEDCount = () => naves.filter((n) => n.certificacionLEED !== null).length
-export const cumplimientoSTPSPromedio = () =>
-  Math.round(naves.reduce((acc, n) => acc + n.cumplimientoSTPS, 0) / naves.length)
+export const certificacionesLEEDCount = (navesInput: Nave[] = naves) => navesInput.filter((n) => n.certificacionLEED !== null).length
+export const cumplimientoSTPSPromedio = (navesInput: Nave[] = naves) =>
+  Math.round(navesInput.reduce((acc, n) => acc + n.cumplimientoSTPS, 0) / navesInput.length)
 
 export interface SegmentoIndustria {
   industria: Industria
@@ -31,7 +33,7 @@ export interface SegmentoIndustria {
   pct: number
 }
 
-export const desgloseIndustria = (): SegmentoIndustria[] => {
+export const desgloseIndustria = (navesInput: Nave[] = naves): SegmentoIndustria[] => {
   const industrias: Industria[] = ['Manufactura Avanzada', 'Logística & E-commerce', 'Automotriz & Tier 1', 'Otros']
   const totalInquilinos = inquilinos.length
 
@@ -40,7 +42,7 @@ export const desgloseIndustria = (): SegmentoIndustria[] => {
     const naveIds = Object.entries(inquilinoPorNaveId)
       .filter(([, inqId]) => inqId && inquilinosDeSegmento.some((i) => i.id === inqId))
       .map(([naveId]) => naveId)
-    const m2 = naves.filter((n) => naveIds.includes(n.id)).reduce((acc, n) => acc + n.gla, 0)
+    const m2 = navesInput.filter((n) => naveIds.includes(n.id)).reduce((acc, n) => acc + n.gla, 0)
     return {
       industria,
       inquilinos: inquilinosDeSegmento.length,
@@ -59,8 +61,8 @@ export interface PuntoNOI {
   proyeccionUSD: number | null
 }
 
-export const serieNOIAnual = (): PuntoNOI[] => {
-  const base = ingresoMensualTotalUSD()
+export const serieNOIAnual = (contratosInput: ContratoArrendamiento[] = contratos): PuntoNOI[] => {
+  const base = ingresoMensualTotalUSD(contratosInput)
   const meses = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic']
   const mesActualIdx = 8 // Septiembre 2026 (0-indexado)
 
