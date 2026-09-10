@@ -116,7 +116,7 @@ export function Sidebar() {
   return (
     <aside
       className={cn(
-        'sticky top-0 relative hidden h-screen shrink-0 flex-col border-r border-sidebar-border bg-sidebar transition-[width] duration-200 lg:flex',
+        'sticky top-0 hidden h-screen shrink-0 flex-col border-r border-sidebar-border bg-sidebar transition-[width] duration-200 lg:flex',
         sidebarColapsado ? 'w-[68px]' : 'w-[260px]',
       )}
     >
