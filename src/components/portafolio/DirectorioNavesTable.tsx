@@ -1,10 +1,11 @@
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { ChevronLeft, ChevronRight, Search } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Pencil, Search } from 'lucide-react'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Button } from '@/components/ui/button'
 import { StatusBadge } from '@/components/shared/StatusBadge'
-import { parqueById, inquilinoPorNaveId, inquilinoById, type EstatusOperativo } from '@/data'
+import { AltaInmuebleDialog } from '@/components/portafolio/AltaInmuebleDialog'
+import { parqueById, inquilinoPorNaveId, inquilinoById, type EstatusOperativo, type Nave } from '@/data'
 import { usePreferences } from '@/context/PreferencesContext'
 import { useDataStore } from '@/context/DataStoreContext'
 import { formatMoneda, formatSuperficie } from '@/lib/format'
@@ -19,6 +20,7 @@ export function DirectorioNavesTable() {
   const [busqueda, setBusqueda] = useState('')
   const [estatusFiltro, setEstatusFiltro] = useState<EstatusOperativo | typeof TODOS_ESTATUS>(TODOS_ESTATUS)
   const [pagina, setPagina] = useState(0)
+  const [naveEnEdicion, setNaveEnEdicion] = useState<Nave | null>(null)
 
   const filas = useMemo(() => {
     const q = busqueda.trim().toLowerCase()
@@ -152,9 +154,14 @@ export function DirectorioNavesTable() {
                     )}
                   </TableCell>
                   <TableCell className="text-right">
-                    <Button size="sm" variant="outline" className="h-7 text-xs" nativeButton={false} render={<Link to={`/naves/${nave.id}`} />}>
-                      Ver 360°
-                    </Button>
+                    <div className="flex justify-end gap-1.5">
+                      <Button size="icon-sm" variant="outline" className="h-7 w-7" aria-label="Editar inmueble" onClick={() => setNaveEnEdicion(nave)}>
+                        <Pencil className="h-3.5 w-3.5" />
+                      </Button>
+                      <Button size="sm" variant="outline" className="h-7 text-xs" nativeButton={false} render={<Link to={`/naves/${nave.id}`} />}>
+                        Ver 360°
+                      </Button>
+                    </div>
                   </TableCell>
                 </TableRow>
               )
@@ -188,6 +195,12 @@ export function DirectorioNavesTable() {
           </Button>
         </div>
       </div>
+
+      <AltaInmuebleDialog
+        open={naveEnEdicion !== null}
+        onOpenChange={(open) => !open && setNaveEnEdicion(null)}
+        naveExistente={naveEnEdicion ?? undefined}
+      />
     </div>
   )
 }

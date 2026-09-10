@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -59,6 +59,32 @@ const ESTADO_INICIAL: FormState = {
   estatusOperativo: 'Óptimo Operativo',
 }
 
+function estadoDesdeNave(nave: Nave): FormState {
+  return {
+    folio: nave.folio,
+    parqueId: nave.parqueId,
+    numeroNave: nave.numeroNave,
+    direccion: nave.direccion,
+    lat: String(nave.coordenadas.lat),
+    lng: String(nave.coordenadas.lng),
+    tipoPropiedad: nave.tipoPropiedad,
+    claseActivo: nave.claseActivo,
+    superficieTerreno: String(nave.superficieTerreno),
+    superficieConstruccion: String(nave.superficieConstruccion),
+    gla: String(nave.gla),
+    areaOficinas: String(nave.areaOficinas),
+    alturaLibre: String(nave.alturaLibre),
+    pisoFFFL: nave.pisoFFFL,
+    numeroAndenes: String(nave.numeroAndenes),
+    numeroRampas: String(nave.numeroRampas),
+    capacidadElectrica: String(nave.capacidadElectrica),
+    certificacionLEED: nave.certificacionLEED ?? 'Ninguna',
+    certificacionESG: nave.certificacionESG,
+    cumplimientoSTPS: String(nave.cumplimientoSTPS),
+    estatusOperativo: nave.estatusOperativo,
+  }
+}
+
 const CAMPOS_OBLIGATORIOS: (keyof FormState)[] = [
   'folio',
   'parqueId',
@@ -78,18 +104,66 @@ const CAMPOS_OBLIGATORIOS: (keyof FormState)[] = [
   'cumplimientoSTPS',
 ]
 
-export function AltaInmuebleDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) {
-  const { naves, agregarNave } = useDataStore()
+// Campos que el formulario captura tanto en alta como en edición. En edición
+// sólo se sobrescriben estos — los campos derivados que no expone el
+// formulario (bahía de columnas, uso de suelo, sistema constructivo, etc.)
+// se conservan tal como están en el inmueble existente en vez de recalcularse
+// con valores por defecto, para no corromper datos reales ya capturados.
+function construirCamposFormulario(form: FormState) {
+  return {
+    folio: form.folio.trim(),
+    parqueId: form.parqueId,
+    numeroNave: form.numeroNave.trim(),
+    direccion: form.direccion.trim(),
+    coordenadas: { lat: Number(form.lat), lng: Number(form.lng) },
+    tipoPropiedad: form.tipoPropiedad,
+    claseActivo: form.claseActivo,
+    estatusOperativo: form.estatusOperativo,
+    superficieTerreno: Number(form.superficieTerreno),
+    superficieConstruccion: Number(form.superficieConstruccion),
+    gla: Number(form.gla),
+    areaOficinas: Number(form.areaOficinas),
+    alturaLibre: Number(form.alturaLibre),
+    numeroAndenes: Number(form.numeroAndenes),
+    numeroRampas: Number(form.numeroRampas),
+    capacidadElectrica: Number(form.capacidadElectrica),
+    pisoFFFL: form.pisoFFFL.trim(),
+    certificacionLEED: form.certificacionLEED === 'Ninguna' ? null : form.certificacionLEED,
+    certificacionESG: form.certificacionESG,
+    cumplimientoSTPS: Number(form.cumplimientoSTPS),
+  } satisfies Partial<Nave>
+}
+
+export function AltaInmuebleDialog({
+  open,
+  onOpenChange,
+  naveExistente,
+}: {
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  naveExistente?: Nave
+}) {
+  const { naves, agregarNave, editarNave } = useDataStore()
   const [form, setForm] = useState<FormState>(ESTADO_INICIAL)
   const [intentoEnviar, setIntentoEnviar] = useState(false)
   const [confirmado, setConfirmado] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (open) {
+      setForm(naveExistente ? estadoDesdeNave(naveExistente) : ESTADO_INICIAL)
+      setIntentoEnviar(false)
+      setConfirmado(null)
+    }
+  }, [open, naveExistente])
 
   function set<K extends keyof FormState>(campo: K, valor: FormState[K]) {
     setForm((prev) => ({ ...prev, [campo]: valor }))
   }
 
   const faltantes = CAMPOS_OBLIGATORIOS.filter((c) => !String(form[c]).trim())
-  const folioDuplicado = form.folio.trim() !== '' && naves.some((n) => n.folio.toLowerCase() === form.folio.trim().toLowerCase())
+  const folioDuplicado =
+    form.folio.trim() !== '' &&
+    naves.some((n) => n.id !== naveExistente?.id && n.folio.toLowerCase() === form.folio.trim().toLowerCase())
   const esValido = faltantes.length === 0 && !folioDuplicado
 
   function limpiarYCerrar(open: boolean) {
@@ -105,61 +179,53 @@ export function AltaInmuebleDialog({ open, onOpenChange }: { open: boolean; onOp
     setIntentoEnviar(true)
     if (!esValido) return
 
-    const nave: Nave = {
-      id: `NAVE-NEW-${Date.now()}`,
-      folio: form.folio.trim(),
-      parqueId: form.parqueId,
-      numeroNave: form.numeroNave.trim(),
-      direccion: form.direccion.trim(),
-      coordenadas: { lat: Number(form.lat), lng: Number(form.lng) },
-      tipoPropiedad: form.tipoPropiedad,
-      claseActivo: form.claseActivo,
-      estatusOperativo: form.estatusOperativo,
-      superficieTerreno: Number(form.superficieTerreno),
-      superficieConstruccion: Number(form.superficieConstruccion),
-      gla: Number(form.gla),
-      areaOficinas: Number(form.areaOficinas),
-      alturaLibre: Number(form.alturaLibre),
-      numeroAndenes: Number(form.numeroAndenes),
-      numeroRampas: Number(form.numeroRampas),
-      capacidadElectrica: Number(form.capacidadElectrica),
-      pisoFFFL: form.pisoFFFL.trim(),
-      bahiaColumnas: '12m x 24m',
-      usoDeSuelo: form.tipoPropiedad === 'Bodega Logística' ? 'I-1 Industria Ligera y de Riesgo Bajo (Uso Logístico)' : 'I-2 Industria Mediana e Intensiva',
-      sistemaConstructivo:
-        form.claseActivo === 'Clase A'
-          ? 'Estructura metálica prefabricada, muros de block y panel aislante, cubierta tipo sándwich'
-          : 'Estructura metálica, muros de block, cubierta galvanizada',
-      numeroCajonesEstacionamiento: Math.round(Number(form.gla) / 180) + Math.round(Number(form.areaOficinas) / 20),
-      tipoIluminacion: 'LED de alta eficiencia en nave y oficinas',
-      certificacionLEED: form.certificacionLEED === 'Ninguna' ? null : form.certificacionLEED,
-      certificacionESG: form.certificacionESG,
-      cumplimientoSTPS: Number(form.cumplimientoSTPS),
-      ocupada: false,
-      fechaEntrega: new Date().toISOString().slice(0, 10),
-    }
+    const campos = construirCamposFormulario(form)
 
-    agregarNave(nave)
-    setConfirmado(nave.folio)
+    if (naveExistente) {
+      editarNave(naveExistente.id, campos)
+    } else {
+      const nave: Nave = {
+        id: `NAVE-NEW-${Date.now()}`,
+        bahiaColumnas: '12m x 24m',
+        usoDeSuelo: form.tipoPropiedad === 'Bodega Logística' ? 'I-1 Industria Ligera y de Riesgo Bajo (Uso Logístico)' : 'I-2 Industria Mediana e Intensiva',
+        sistemaConstructivo:
+          form.claseActivo === 'Clase A'
+            ? 'Estructura metálica prefabricada, muros de block y panel aislante, cubierta tipo sándwich'
+            : 'Estructura metálica, muros de block, cubierta galvanizada',
+        numeroCajonesEstacionamiento: Math.round(Number(form.gla) / 180) + Math.round(Number(form.areaOficinas) / 20),
+        tipoIluminacion: 'LED de alta eficiencia en nave y oficinas',
+        ocupada: false,
+        fechaEntrega: new Date().toISOString().slice(0, 10),
+        ...campos,
+      } as Nave
+      agregarNave(nave)
+    }
+    setConfirmado(campos.folio!)
   }
+
+  const esEdicion = Boolean(naveExistente)
 
   return (
     <Dialog open={open} onOpenChange={limpiarYCerrar}>
       <DialogContent className="max-h-[85vh] max-w-2xl overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Alta de Inmueble</DialogTitle>
+          <DialogTitle>{esEdicion ? 'Editar Inmueble' : 'Alta de Inmueble'}</DialogTitle>
           <DialogDescription>
-            Registra un nuevo inmueble en el portafolio. Los campos marcados con * son obligatorios; el expediente queda "Incompleto" hasta cargar la documentación.
+            {esEdicion
+              ? 'Actualiza la ficha técnica del inmueble. Los cambios se reflejan de inmediato en Directorio, Expediente 360° y los KPIs del portafolio.'
+              : 'Registra un nuevo inmueble en el portafolio. Los campos marcados con * son obligatorios; el expediente queda "Incompleto" hasta cargar la documentación.'}
           </DialogDescription>
         </DialogHeader>
 
         {confirmado ? (
           <div className="flex flex-col items-center gap-3 py-8 text-center">
             <div className="flex h-12 w-12 items-center justify-center rounded-full bg-status-success-bg text-status-success">✓</div>
-            <p className="text-sm font-medium text-foreground">Nave {confirmado} agregada al Directorio del Portafolio.</p>
-            <p className="max-w-sm text-xs text-muted-foreground">
-              Se agregó a la tabla de esta sesión (sin persistencia real). Los KPIs agregados del portafolio no se recalculan automáticamente — es una limitación conocida de esta maqueta.
+            <p className="text-sm font-medium text-foreground">
+              {esEdicion ? `Nave ${confirmado} actualizada correctamente.` : `Nave ${confirmado} agregada al Directorio del Portafolio.`}
             </p>
+            {!esEdicion && (
+              <p className="max-w-sm text-xs text-muted-foreground">Se agregó a la tabla de esta sesión (sin persistencia real entre sesiones).</p>
+            )}
           </div>
         ) : (
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -291,7 +357,7 @@ export function AltaInmuebleDialog({ open, onOpenChange }: { open: boolean; onOp
               <Button variant="outline" onClick={() => limpiarYCerrar(false)}>
                 Cancelar
               </Button>
-              <Button onClick={enviar}>Dar de Alta</Button>
+              <Button onClick={enviar}>{esEdicion ? 'Guardar Cambios' : 'Dar de Alta'}</Button>
             </>
           )}
         </DialogFooter>

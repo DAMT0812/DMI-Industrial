@@ -1,5 +1,6 @@
+import { useState } from 'react'
 import { Link, Navigate, useParams } from 'react-router-dom'
-import { Download, Lock, MapPin, Share2, ShieldCheck, ClipboardPlus } from 'lucide-react'
+import { Download, Lock, MapPin, Pencil, Share2, ShieldCheck, ClipboardPlus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { StatusBadge } from '@/components/shared/StatusBadge'
@@ -8,6 +9,7 @@ import { ContratoArrendatarioTab } from '@/components/expediente/ContratoArrenda
 import { EquiposMantenimientoTab } from '@/components/expediente/EquiposMantenimientoTab'
 import { PredialCfeServiciosTab } from '@/components/expediente/PredialCfeServiciosTab'
 import { MultimediaTab } from '@/components/expediente/MultimediaTab'
+import { AltaInmuebleDialog } from '@/components/portafolio/AltaInmuebleDialog'
 import { usePreferences } from '@/context/PreferencesContext'
 import { useDataStore } from '@/context/DataStoreContext'
 import { parqueById, inquilinoPorNaveId, inquilinoById } from '@/data'
@@ -18,6 +20,7 @@ export function ExpedienteNavePage() {
   const { naveId } = useParams()
   const { moneda, unidad, perfilSimulado } = usePreferences()
   const { naveById, contratoPorNaveId } = useDataStore()
+  const [editarAbierto, setEditarAbierto] = useState(false)
   const nave = naveId ? naveById(naveId) : undefined
 
   if (!nave) return <Navigate to="/" replace />
@@ -71,6 +74,10 @@ export function ExpedienteNavePage() {
           </p>
         </div>
         <div className="flex shrink-0 flex-wrap gap-2">
+          <Button variant="outline" className="gap-1.5" onClick={() => setEditarAbierto(true)}>
+            <Pencil className="h-4 w-4" />
+            Editar Inmueble
+          </Button>
           <Button variant="outline" className="gap-1.5">
             <Download className="h-4 w-4" />
             Descargar Dossier (ZIP)
@@ -164,6 +171,8 @@ export function ExpedienteNavePage() {
           {esContabilidad ? <AccesoRestringido /> : <MultimediaTab nave={nave} />}
         </TabsContent>
       </Tabs>
+
+      <AltaInmuebleDialog open={editarAbierto} onOpenChange={setEditarAbierto} naveExistente={nave} />
     </div>
   )
 }
