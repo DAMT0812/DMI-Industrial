@@ -8,16 +8,30 @@ import { usePreferences } from '@/context/PreferencesContext'
 import { parques, parqueById, ocupacionGlobalPct } from '@/data'
 import { cn } from '@/lib/utils'
 
-const NAV_ITEMS = [
-  { to: '/', label: 'Portafolio de Naves', icon: Building2, end: true },
-  { to: '/mantenimiento', label: 'Mantenimiento & SLAs', icon: Wrench, end: false },
-  { to: '/naves/NAVE-01', label: 'Expediente Digital 360°', icon: FolderOpenDot, end: false },
-  { to: '/tareas-capex', label: 'Centro de Tareas & CapEx', icon: ClipboardList, end: false },
-]
+// Nave representativa por región — así el atajo de "Expediente Digital 360°"
+// siempre abre algo dentro del alcance del perfil simulado activo.
+const NAVE_REPRESENTATIVA_POR_REGION: Record<string, string> = {
+  Bajío: 'NAVE-04',
+  Norte: 'NAVE-06',
+  Occidente: 'NAVE-01',
+  todas: 'NAVE-01',
+}
 
 function SidebarBody({ collapsed, onNavigate }: { collapsed: boolean; onNavigate?: () => void }) {
-  const { parqueSeleccionado, setParqueSeleccionado } = usePreferences()
+  const { parqueSeleccionado, setParqueSeleccionado, perfilSimulado } = usePreferences()
   const ocupacion = ocupacionGlobalPct()
+
+  const navItems = [
+    { to: '/', label: 'Portafolio de Naves', icon: Building2, end: true },
+    { to: '/mantenimiento', label: 'Mantenimiento & SLAs', icon: Wrench, end: false },
+    {
+      to: `/naves/${NAVE_REPRESENTATIVA_POR_REGION[perfilSimulado.region]}`,
+      label: 'Expediente Digital 360°',
+      icon: FolderOpenDot,
+      end: false,
+    },
+    { to: '/tareas-capex', label: 'Centro de Tareas & CapEx', icon: ClipboardList, end: false },
+  ]
 
   return (
     <>
@@ -49,7 +63,7 @@ function SidebarBody({ collapsed, onNavigate }: { collapsed: boolean; onNavigate
       <div className="flex-1 overflow-y-auto px-3">
         {!collapsed && <div className="px-1 pb-2 text-[10px] font-semibold uppercase tracking-wider text-slate-400">Operaciones & Asset Mgmt</div>}
         <nav className="flex flex-col gap-0.5">
-          {NAV_ITEMS.map((item) => (
+          {navItems.map((item) => (
             <NavLink
               key={item.label}
               to={item.to}

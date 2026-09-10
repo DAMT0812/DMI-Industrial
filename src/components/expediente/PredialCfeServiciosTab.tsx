@@ -1,5 +1,7 @@
+import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { StatusBadge } from '@/components/shared/StatusBadge'
+import { DocumentoDialog } from '@/components/shared/DocumentoDialog'
 import { documentosPorNave, type TipoDocumento, type Nave } from '@/data'
 import { formatFecha, diasParaVencer } from '@/lib/dates'
 import { FileCheck2 } from 'lucide-react'
@@ -8,6 +10,9 @@ const TIPOS_SERVICIOS: TipoDocumento[] = ['Predial', 'Contrato CFE', 'Contrato d
 
 export function PredialCfeServiciosTab({ nave }: { nave: Nave }) {
   const documentos = documentosPorNave(nave.id).filter((d) => TIPOS_SERVICIOS.includes(d.tipo))
+  const [archivos, setArchivos] = useState<Record<string, File>>({})
+  const [docAbierto, setDocAbierto] = useState<string | null>(null)
+  const docActivo = documentos.find((d) => d.id === docAbierto)
 
   return (
     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -35,13 +40,28 @@ export function PredialCfeServiciosTab({ nave }: { nave: Nave }) {
               )}
             </div>
             <div className="mt-3 flex justify-end">
-              <Button size="sm" variant="outline" className="h-7 text-xs">
+              <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => setDocAbierto(d.id)}>
                 Ver Comprobante PDF
               </Button>
             </div>
           </div>
         )
       })}
+
+      {docActivo && (
+        <DocumentoDialog
+          open={docAbierto !== null}
+          onOpenChange={(open) => !open && setDocAbierto(null)}
+          titulo={docActivo.tipo}
+          dependenciaEmisora={docActivo.dependenciaEmisora}
+          numeroFolio={docActivo.numeroFolio}
+          fechaEmision={docActivo.fechaEmision}
+          fechaVencimiento={docActivo.fechaVencimiento}
+          estatus={docActivo.estatusJuridico}
+          archivoActual={archivos[docActivo.id] ?? null}
+          onArchivoCambiado={(file) => setArchivos((prev) => ({ ...prev, [docActivo.id]: file }))}
+        />
+      )}
     </div>
   )
 }

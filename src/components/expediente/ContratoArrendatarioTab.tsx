@@ -1,5 +1,8 @@
+import { useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
 import { StatusBadge } from '@/components/shared/StatusBadge'
+import { AprobarRechazarDialog } from '@/components/shared/AprobarRechazarDialog'
 import {
   contratoPorNaveId,
   inquilinoPorNaveId,
@@ -27,6 +30,13 @@ export function ContratoArrendatarioTab({ nave }: { nave: Nave }) {
   const broker = brokerById(brokerPorNaveId[nave.id])
   const emergencia = contactosEmergenciaPorNave(nave.id)
 
+  // Interacción ligera de la maqueta (sin persistir): Dirección aprueba o
+  // rechaza la renovación; un rechazo regresa el contrato a "En Revisión"
+  // para continuar la negociación, nunca queda en "Rechazado".
+  const [estatusOverride, setEstatusOverride] = useState<string | null>(null)
+  const [dialogoAbierto, setDialogoAbierto] = useState(false)
+  const estatusMostrado = estatusOverride ?? contrato?.estatus
+
   return (
     <div className="flex flex-col gap-6">
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
@@ -50,8 +60,15 @@ export function ContratoArrendatarioTab({ nave }: { nave: Nave }) {
                 <Fila etiqueta="Avalista" valor={contrato.avalista} />
                 <div className="flex items-center justify-between pt-1">
                   <span className="text-xs font-medium text-muted-foreground">Estatus</span>
-                  <StatusBadge estatus={contrato.estatus} />
+                  <StatusBadge estatus={estatusMostrado!} />
                 </div>
+                {estatusMostrado === 'En Revisión' && (
+                  <div className="flex justify-end pt-1">
+                    <Button size="sm" className="h-7 text-xs" onClick={() => setDialogoAbierto(true)}>
+                      Resolver Renovación
+                    </Button>
+                  </div>
+                )}
                 {contrato.clausulasEspeciales.length > 0 && (
                   <div className="mt-1 rounded-md bg-surface-secondary p-3">
                     <div className="mb-1.5 text-[11px] font-semibold text-muted-foreground uppercase">Cláusulas Especiales</div>
@@ -118,6 +135,19 @@ export function ContratoArrendatarioTab({ nave }: { nave: Nave }) {
           </CardContent>
         </Card>
       </div>
+
+      {contrato && (
+        <AprobarRechazarDialog
+          open={dialogoAbierto}
+          onOpenChange={setDialogoAbierto}
+          titulo="Resolver Renovación de Contrato"
+          descripcion={`${inquilino?.nombreComercial} — vence ${formatFecha(contrato.fechaVencimiento)}`}
+          etiquetaAprobar="Aprobar Renovación"
+          etiquetaRechazar="Rechazar Términos"
+          onAprobar={() => setEstatusOverride('Vigente')}
+          onRechazar={() => setEstatusOverride('En Revisión')}
+        />
+      )}
     </div>
   )
 }

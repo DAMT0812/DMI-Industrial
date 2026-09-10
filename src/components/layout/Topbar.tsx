@@ -1,8 +1,9 @@
-import { Bell, Search } from 'lucide-react'
+import { Bell, Search, UserCog } from 'lucide-react'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
@@ -11,10 +12,10 @@ import {
 import { PillToggle } from '@/components/shared/ToggleGroup'
 import { MobileSidebar } from '@/components/layout/Sidebar'
 import { usePreferences } from '@/context/PreferencesContext'
-import { usuarioActual, alertas } from '@/data'
+import { alertas, perfilesSimulados } from '@/data'
 
 export function Topbar() {
-  const { moneda, setMoneda, unidad, setUnidad } = usePreferences()
+  const { moneda, setMoneda, unidad, setUnidad, perfilSimulado, setPerfilSimulado } = usePreferences()
   const notificacionesPendientes = alertas.filter((a) => a.estatus === 'Pendiente').length
 
   return (
@@ -64,22 +65,33 @@ export function Topbar() {
         <DropdownMenu>
           <DropdownMenuTrigger className="flex items-center gap-2.5 rounded-md py-1 pr-1 pl-2 hover:bg-surface-secondary">
             <div className="hidden text-right leading-tight lg:block">
-              <div className="text-sm font-semibold text-foreground">{usuarioActual.nombre}</div>
-              <div className="text-[11px] text-muted-foreground">{usuarioActual.puesto}</div>
+              <div className="text-sm font-semibold text-foreground">{perfilSimulado.nombre}</div>
+              <div className="text-[11px] text-muted-foreground">{perfilSimulado.puesto}</div>
             </div>
             <Avatar className="h-8 w-8">
               <AvatarFallback className="bg-primary text-xs font-semibold text-primary-foreground">
-                {usuarioActual.avatarIniciales}
+                {perfilSimulado.iniciales}
               </AvatarFallback>
             </Avatar>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-56">
-            <DropdownMenuLabel>{usuarioActual.nombre}</DropdownMenuLabel>
+          <DropdownMenuContent align="end" className="w-64">
+            <DropdownMenuGroup>
+              <DropdownMenuLabel>{perfilSimulado.nombre}</DropdownMenuLabel>
+            </DropdownMenuGroup>
             <DropdownMenuSeparator />
-            <DropdownMenuItem>Mi perfil</DropdownMenuItem>
-            <DropdownMenuItem>Preferencias de notificación</DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem>Cerrar sesión</DropdownMenuItem>
+            <DropdownMenuGroup>
+              <DropdownMenuLabel className="flex items-center gap-1.5 text-[11px] font-semibold text-muted-foreground uppercase">
+                <UserCog className="h-3 w-3" />
+                Ver como (simulación de rol)
+              </DropdownMenuLabel>
+              {perfilesSimulados.map((p) => (
+                <DropdownMenuItem key={p.clave} onClick={() => setPerfilSimulado(p.clave)}>
+                  <span className={p.clave === perfilSimulado.clave ? 'font-semibold text-primary' : ''}>
+                    {p.nombre} — {p.puesto}
+                  </span>
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuGroup>
           </DropdownMenuContent>
         </DropdownMenu>
       </div>

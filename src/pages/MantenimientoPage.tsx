@@ -1,9 +1,11 @@
-import { AlertOctagon, Clock, Download, DollarSign, PlusCircle, Star, Wrench } from 'lucide-react'
+import { useState } from 'react'
+import { AlertOctagon, ClipboardCheck, Clock, Download, DollarSign, PlusCircle, Star, Wrench } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { KpiCard } from '@/components/shared/KpiCard'
 import { StatusBadge } from '@/components/shared/StatusBadge'
+import { AprobarRechazarDialog } from '@/components/shared/AprobarRechazarDialog'
 import { CalendarioMantenimiento } from '@/components/mantenimiento/CalendarioMantenimiento'
 import { usePreferences } from '@/context/PreferencesContext'
 import {
@@ -25,15 +27,24 @@ import {
   capexProyectosMayores,
   slaPromedioResolucionHoras,
   SLA_META_HORAS,
+  type EstatusTicket,
+  type OrdenTrabajo,
 } from '@/data'
 import { formatMoneda, formatPct } from '@/lib/format'
 
 export function MantenimientoPage() {
-  const { moneda } = usePreferences()
+  const { moneda, perfilSimulado } = usePreferences()
   const correctivos = correctivosActivos()
   const proyectoMayor = proyectoMayorEnCurso()
   const naveProyecto = proyectoMayor ? naveById(proyectoMayor.naveId) : null
   const parqueProyecto = naveProyecto ? parqueById(naveProyecto.parqueId) : null
+
+  // Interacción ligera de la maqueta: cambia el estado en la sesión del
+  // navegador (sin persistir) cuando el Facility Manager valida o rechaza
+  // el cierre de una orden en "Pendiente de Evidencia".
+  const [overrides, setOverrides] = useState<Record<string, EstatusTicket>>({})
+  const [otParaValidar, setOtParaValidar] = useState<OrdenTrabajo | null>(null)
+  const estatusEfectivo = (o: OrdenTrabajo) => overrides[o.id] ?? o.estatus
 
   return (
     <div className="flex flex-col gap-6">
@@ -152,15 +163,18 @@ export function MantenimientoPage() {
                     <TableHead>Proveedor Asignado</TableHead>
                     <TableHead className="text-right">Costo Estimado</TableHead>
                     <TableHead>SLA / Estado</TableHead>
+                    <TableHead className="text-right">Acción</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {ordenesTrabajo
-                    .filter((o) => o.estatus !== 'Validado' && o.estatus !== 'Cancelada')
+                    .filter((o) => estatusEfectivo(o) !== 'Validado' && estatusEfectivo(o) !== 'Cancelada')
+                    .filter((o) => perfilSimulado.region === 'todas' || parqueById(naveById(o.naveId)!.parqueId)?.region === perfilSimulado.region)
                     .map((o) => {
                       const nave = naveById(o.naveId)!
                       const parque = parqueById(nave.parqueId)!
                       const contratista = contratistaById(o.contratistaId)
+                      const estatus = estatusEfectivo(o)
                       return (
                         <TableRow key={o.id}>
                           <TableCell>
@@ -177,7 +191,15 @@ export function MantenimientoPage() {
                           <TableCell className="tabular text-right">{formatMoneda(o.costoEstimado, moneda)}</TableCell>
                           <TableCell>
                             <div className="tabular text-xs text-muted-foreground">SLA {o.slaHoras}h</div>
-                            <StatusBadge estatus={o.estatus} />
+                            <StatusBadge estatus={estatus} />
+                          </TableCell>
+                          <TableCell className="text-right">
+                            {estatus === 'Pendiente de Evidencia' && (
+                              <Button size="sm" variant="outline" className="h-7 gap-1 text-xs" onClick={() => setOtParaValidar(o)}>
+                                <ClipboardCheck className="h-3.5 w-3.5" />
+                                Validar Cierre
+                              </Button>
+                            )}
                           </TableCell>
                         </TableRow>
                       )
@@ -243,6 +265,17 @@ export function MantenimientoPage() {
           ))}
         </div>
       </div>
+
+      <AprobarRechazarDialog
+        open={otParaValidar !== null}
+        onOpenChange={(open) => !open && setOtParaValidar(null)}
+        titulo={otParaValidar ? `Validar cierre — ${otParaValidar.folio}` : ''}
+        descripcion={otParaValidar ? `${otParaValidar.categoria} — ${otParaValidar.descripcion}` : undefined}
+        etiquetaAprobar="Validar y Cerrar"
+        etiquetaRechazar="Rechazar Cierre"
+        onAprobar={() => otParaValidar && setOverrides((prev) => ({ ...prev, [otParaValidar.id]: 'Validado' }))}
+        onRechazar={() => otParaValidar && setOverrides((prev) => ({ ...prev, [otParaValidar.id]: 'En ejecución' }))}
+      />
     </div>
   )
 }

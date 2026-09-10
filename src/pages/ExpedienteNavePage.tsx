@@ -1,5 +1,5 @@
-import { Navigate, useParams } from 'react-router-dom'
-import { Download, MapPin, Share2, ShieldCheck, ClipboardPlus } from 'lucide-react'
+import { Link, Navigate, useParams } from 'react-router-dom'
+import { Download, Lock, MapPin, Share2, ShieldCheck, ClipboardPlus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { StatusBadge } from '@/components/shared/StatusBadge'
@@ -9,14 +9,16 @@ import { EquiposMantenimientoTab } from '@/components/expediente/EquiposMantenim
 import { PredialCfeServiciosTab } from '@/components/expediente/PredialCfeServiciosTab'
 import { MultimediaTab } from '@/components/expediente/MultimediaTab'
 import { usePreferences } from '@/context/PreferencesContext'
+import { useNavesNuevas } from '@/context/NavesContext'
 import { naveById, parqueById, contratoPorNaveId, inquilinoPorNaveId, inquilinoById } from '@/data'
 import { formatMoneda, formatSuperficie } from '@/lib/format'
 import { mesesRestantes } from '@/lib/dates'
 
 export function ExpedienteNavePage() {
   const { naveId } = useParams()
-  const { moneda, unidad } = usePreferences()
-  const nave = naveId ? naveById(naveId) : undefined
+  const { moneda, unidad, perfilSimulado } = usePreferences()
+  const { navesNuevas } = useNavesNuevas()
+  const nave = naveId ? (naveById(naveId) ?? navesNuevas.find((n) => n.id === naveId)) : undefined
 
   if (!nave) return <Navigate to="/" replace />
 
@@ -24,6 +26,25 @@ export function ExpedienteNavePage() {
   const contrato = contratoPorNaveId(nave.id)
   const inquilino = inquilinoById(inquilinoPorNaveId[nave.id] ?? '')
   const mesesRestantesContrato = contrato ? mesesRestantes(contrato.fechaVencimiento) : null
+
+  const fueraDeRegion = perfilSimulado.region !== 'todas' && parque.region !== perfilSimulado.region
+  const esContabilidad = perfilSimulado.rol === 'Contabilidad'
+
+  if (fueraDeRegion) {
+    return (
+      <div className="flex flex-col items-center justify-center gap-3 rounded-lg border border-border bg-card py-20 text-center">
+        <Lock className="h-8 w-8 text-status-danger" />
+        <h2 className="text-headline-sm text-foreground">Sin acceso a esta nave</h2>
+        <p className="max-w-md text-sm text-muted-foreground">
+          {parque.nombre} pertenece a la región <strong>{parque.region}</strong>, fuera del alcance de{' '}
+          <strong>{perfilSimulado.nombre}</strong> ({perfilSimulado.puesto}). Cambia de perfil simulado en la barra superior o vuelve al portafolio.
+        </p>
+        <Button size="sm" variant="outline" render={<Link to="/" />} nativeButton={false}>
+          Volver al Portafolio
+        </Button>
+      </div>
+    )
+  }
 
   return (
     <div className="flex flex-col gap-6">
@@ -104,7 +125,21 @@ export function ExpedienteNavePage() {
         </div>
       </div>
 
-      <Tabs defaultValue="obra">
+      {esContabilidad && (
+        <div className="flex items-center gap-2 rounded-md border border-status-warning-bg bg-status-warning-bg/60 px-3 py-2 text-xs text-status-warning">
+          <Lock className="h-3.5 w-3.5 shrink-0" />
+          Perfil Contabilidad: solo tienes acceso a "Predial, CFE & Servicios". El resto del expediente técnico y legal está restringido.
+        </div>
+      )}
+
+      {nave.id.startsWith('NAVE-NEW') && (
+        <div className="flex items-center gap-2 rounded-md border border-status-warning-bg bg-status-warning-bg/60 px-3 py-2 text-xs text-status-warning">
+          <Lock className="h-3.5 w-3.5 shrink-0" />
+          Expediente Incompleto: esta nave se dio de alta en esta sesión y aún no tiene documentos, contrato ni sistemas críticos cargados.
+        </div>
+      )}
+
+      <Tabs defaultValue={esContabilidad ? 'predial' : 'obra'}>
         <TabsList className="h-auto flex-wrap">
           <TabsTrigger value="obra">Obra & Construcción</TabsTrigger>
           <TabsTrigger value="contrato">Contrato & Arrendatario</TabsTrigger>
@@ -114,21 +149,32 @@ export function ExpedienteNavePage() {
         </TabsList>
 
         <TabsContent value="obra" className="mt-5">
-          <ObraConstruccionTab nave={nave} />
+          {esContabilidad ? <AccesoRestringido /> : <ObraConstruccionTab nave={nave} />}
         </TabsContent>
         <TabsContent value="contrato" className="mt-5">
-          <ContratoArrendatarioTab nave={nave} />
+          {esContabilidad ? <AccesoRestringido /> : <ContratoArrendatarioTab nave={nave} />}
         </TabsContent>
         <TabsContent value="equipos" className="mt-5">
-          <EquiposMantenimientoTab nave={nave} />
+          {esContabilidad ? <AccesoRestringido /> : <EquiposMantenimientoTab nave={nave} />}
         </TabsContent>
         <TabsContent value="predial" className="mt-5">
           <PredialCfeServiciosTab nave={nave} />
         </TabsContent>
         <TabsContent value="multimedia" className="mt-5">
-          <MultimediaTab nave={nave} />
+          {esContabilidad ? <AccesoRestringido /> : <MultimediaTab nave={nave} />}
         </TabsContent>
       </Tabs>
+    </div>
+  )
+}
+
+function AccesoRestringido() {
+  return (
+    <div className="flex flex-col items-center gap-2 rounded-lg border border-dashed border-border bg-surface-secondary py-14 text-center">
+      <Lock className="h-6 w-6 text-muted-foreground" />
+      <p className="text-sm text-muted-foreground">
+        Esta sección no está disponible para el rol Contabilidad. Cambia a Property Manager o Dirección para consultarla.
+      </p>
     </div>
   )
 }

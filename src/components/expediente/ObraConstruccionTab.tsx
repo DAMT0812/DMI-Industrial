@@ -1,7 +1,9 @@
+import { useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Button } from '@/components/ui/button'
 import { StatusBadge } from '@/components/shared/StatusBadge'
+import { DocumentoDialog } from '@/components/shared/DocumentoDialog'
 import { documentosPorNave, estudiosPorNave, propietarioPorNave, contratistas, type Nave } from '@/data'
 import { formatFecha } from '@/lib/dates'
 import { FileDown, FileText, Landmark } from 'lucide-react'
@@ -21,6 +23,12 @@ export function ObraConstruccionTab({ nave }: { nave: Nave }) {
   const permisos = documentosPorNave(nave.id).filter((d) => OBRA_TIPOS.includes(d.tipo))
   const estudios = estudiosPorNave(nave.id)
   const propietario = propietarioPorNave(nave.id)
+
+  const [archivos, setArchivos] = useState<Record<string, File>>({})
+  const [permisoAbierto, setPermisoAbierto] = useState<string | null>(null)
+  const [estudioAbierto, setEstudioAbierto] = useState<string | null>(null)
+  const permisoActivo = permisos.find((d) => d.id === permisoAbierto)
+  const estudioActivo = estudios.find((e) => e.id === estudioAbierto)
 
   return (
     <div className="flex flex-col gap-6">
@@ -115,7 +123,8 @@ export function ObraConstruccionTab({ nave }: { nave: Nave }) {
                       <StatusBadge estatus={doc.estatusJuridico} />
                     </TableCell>
                     <TableCell className="text-right">
-                      <Button size="sm" variant="outline" className="h-7 text-xs">
+                      <Button size="sm" variant="outline" className="h-7 gap-1 text-xs" onClick={() => setPermisoAbierto(doc.id)}>
+                        {archivos[doc.id] ? <FileText className="h-3.5 w-3.5" /> : null}
                         Ver PDF
                       </Button>
                     </TableCell>
@@ -151,7 +160,8 @@ export function ObraConstruccionTab({ nave }: { nave: Nave }) {
                     <TableCell className="tabular text-xs">{formatFecha(e.fechaRealizacion)}</TableCell>
                     <TableCell className="max-w-[260px] text-xs text-muted-foreground">{e.resultado}</TableCell>
                     <TableCell className="text-right">
-                      <Button size="sm" variant="outline" className="h-7 text-xs">
+                      <Button size="sm" variant="outline" className="h-7 gap-1 text-xs" onClick={() => setEstudioAbierto(e.id)}>
+                        {archivos[e.id] ? <FileText className="h-3.5 w-3.5" /> : null}
                         Ver PDF
                       </Button>
                     </TableCell>
@@ -180,6 +190,33 @@ export function ObraConstruccionTab({ nave }: { nave: Nave }) {
           ))}
         </div>
       </div>
+
+      {permisoActivo && (
+        <DocumentoDialog
+          open={permisoAbierto !== null}
+          onOpenChange={(open) => !open && setPermisoAbierto(null)}
+          titulo={permisoActivo.tipo}
+          dependenciaEmisora={permisoActivo.dependenciaEmisora}
+          numeroFolio={permisoActivo.numeroFolio}
+          fechaEmision={permisoActivo.fechaEmision}
+          fechaVencimiento={permisoActivo.fechaVencimiento}
+          estatus={permisoActivo.estatusJuridico}
+          archivoActual={archivos[permisoActivo.id] ?? null}
+          onArchivoCambiado={(file) => setArchivos((prev) => ({ ...prev, [permisoActivo.id]: file }))}
+        />
+      )}
+
+      {estudioActivo && (
+        <DocumentoDialog
+          open={estudioAbierto !== null}
+          onOpenChange={(open) => !open && setEstudioAbierto(null)}
+          titulo={estudioActivo.tipo}
+          dependenciaEmisora={estudioActivo.empresaConsultora}
+          fechaEmision={estudioActivo.fechaRealizacion}
+          archivoActual={archivos[estudioActivo.id] ?? null}
+          onArchivoCambiado={(file) => setArchivos((prev) => ({ ...prev, [estudioActivo.id]: file }))}
+        />
+      )}
     </div>
   )
 }

@@ -1,4 +1,4 @@
-import { Award, Building2, DollarSign, Download, Gauge, Percent, ShieldCheck } from 'lucide-react'
+import { Award, Building2, DollarSign, Download, Gauge, Percent, PlusCircle, ShieldCheck } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { KpiCard } from '@/components/shared/KpiCard'
@@ -6,6 +6,7 @@ import { AlertaCard } from '@/components/shared/AlertaCard'
 import { NoiLineChart } from '@/components/portafolio/NoiLineChart'
 import { IndustriaDonutChart } from '@/components/portafolio/IndustriaDonutChart'
 import { DirectorioNavesTable } from '@/components/portafolio/DirectorioNavesTable'
+import { AltaInmuebleDialog } from '@/components/portafolio/AltaInmuebleDialog'
 import { PillToggle } from '@/components/shared/ToggleGroup'
 import { usePreferences } from '@/context/PreferencesContext'
 import {
@@ -34,6 +35,7 @@ const PERIODOS = ['T1 2026', 'T2 2026', 'T3 2026'] as const
 export function PortafolioPage() {
   const { moneda, unidad } = usePreferences()
   const [periodo, setPeriodo] = useState<(typeof PERIODOS)[number]>('T3 2026')
+  const [altaAbierta, setAltaAbierta] = useState(false)
 
   const ocupacion = ocupacionGlobalPct()
   const ingresoMensual = ingresoMensualTotalUSD()
@@ -57,6 +59,10 @@ export function PortafolioPage() {
           <Button variant="outline" className="gap-1.5">
             <Download className="h-4 w-4" />
             Exportar Reporte CapEx/NOI
+          </Button>
+          <Button className="gap-1.5" onClick={() => setAltaAbierta(true)}>
+            <PlusCircle className="h-4 w-4" />
+            Alta de Inmueble
           </Button>
         </div>
       </div>
@@ -153,6 +159,8 @@ export function PortafolioPage() {
           detalle="Promedio de cumplimiento NOM vigente"
         />
       </div>
+
+      <AltaInmuebleDialog open={altaAbierta} onOpenChange={setAltaAbierta} />
     </div>
   )
 }

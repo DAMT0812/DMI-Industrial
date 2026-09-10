@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { StatusBadge } from '@/components/shared/StatusBadge'
 import { naves, parqueById, contratoPorNaveId, inquilinoPorNaveId, inquilinoById, type EstatusOperativo } from '@/data'
 import { usePreferences } from '@/context/PreferencesContext'
+import { useNavesNuevas } from '@/context/NavesContext'
 import { formatMoneda, formatSuperficie } from '@/lib/format'
 import { diasParaVencer, mesesRestantes } from '@/lib/dates'
 
@@ -13,14 +14,18 @@ const PAGE_SIZE = 8
 const TODOS_ESTATUS = 'Todos' as const
 
 export function DirectorioNavesTable() {
-  const { moneda, unidad, parqueSeleccionado } = usePreferences()
+  const { moneda, unidad, parqueSeleccionado, perfilSimulado } = usePreferences()
+  const { navesNuevas } = useNavesNuevas()
   const [busqueda, setBusqueda] = useState('')
   const [estatusFiltro, setEstatusFiltro] = useState<EstatusOperativo | typeof TODOS_ESTATUS>(TODOS_ESTATUS)
   const [pagina, setPagina] = useState(0)
 
+  const todasLasNaves = useMemo(() => [...naves, ...navesNuevas], [navesNuevas])
+
   const filas = useMemo(() => {
     const q = busqueda.trim().toLowerCase()
-    return naves
+    return todasLasNaves
+      .filter((n) => perfilSimulado.region === 'todas' || parqueById(n.parqueId)?.region === perfilSimulado.region)
       .filter((n) => parqueSeleccionado === 'todos' || n.parqueId === parqueSeleccionado)
       .filter((n) => estatusFiltro === TODOS_ESTATUS || n.estatusOperativo === estatusFiltro)
       .filter((n) => {
@@ -33,7 +38,7 @@ export function DirectorioNavesTable() {
           inquilino?.nombreComercial.toLowerCase().includes(q)
         )
       })
-  }, [busqueda, estatusFiltro, parqueSeleccionado])
+  }, [todasLasNaves, busqueda, estatusFiltro, parqueSeleccionado, perfilSimulado])
 
   const totalPaginas = Math.max(1, Math.ceil(filas.length / PAGE_SIZE))
   const paginaSegura = Math.min(pagina, totalPaginas - 1)
@@ -53,7 +58,10 @@ export function DirectorioNavesTable() {
       <div className="flex flex-col gap-3 border-b border-border p-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h3 className="text-sm font-semibold text-foreground">Directorio Operativo de Naves y Complejos</h3>
-          <p className="text-xs text-muted-foreground">{filas.length} activos coinciden con los filtros aplicados</p>
+          <p className="text-xs text-muted-foreground">
+            {filas.length} activos coinciden con los filtros aplicados
+            {perfilSimulado.region !== 'todas' && ` · restringido a la región ${perfilSimulado.region} (rol ${perfilSimulado.puesto})`}
+          </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <div className="relative">
@@ -139,6 +147,11 @@ export function DirectorioNavesTable() {
                   </TableCell>
                   <TableCell>
                     <StatusBadge estatus={nave.estatusOperativo} />
+                    {nave.id.startsWith('NAVE-NEW') && (
+                      <div className="mt-1">
+                        <StatusBadge estatus="Expediente Incompleto" tono="warning" />
+                      </div>
+                    )}
                   </TableCell>
                   <TableCell className="text-right">
                     <Button size="sm" variant="outline" className="h-7 text-xs" nativeButton={false} render={<Link to={`/naves/${nave.id}`} />}>

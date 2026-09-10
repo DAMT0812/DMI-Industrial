@@ -64,10 +64,14 @@ function TareaCard({ tarea }: { tarea: TareaOperativa }) {
 }
 
 export function KanbanBoard() {
+  const { perfilSimulado } = usePreferences()
+
   return (
     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
       {COLUMNAS.map((col) => {
-        const tareas = tareasOperativas.filter((t) => t.columna === col)
+        const tareas = tareasOperativas
+          .filter((t) => t.columna === col)
+          .filter((t) => perfilSimulado.region === 'todas' || parqueById(naveById(t.naveId)!.parqueId)?.region === perfilSimulado.region)
         return (
           <div key={col} className="flex flex-col gap-3 rounded-lg border border-border bg-surface-secondary/40 p-3">
             <div className="flex items-center justify-between">
