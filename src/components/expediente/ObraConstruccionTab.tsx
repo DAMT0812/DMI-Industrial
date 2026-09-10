@@ -19,7 +19,7 @@ const PLANOS = [
 ]
 
 export function ObraConstruccionTab({ nave }: { nave: Nave }) {
-  const { documentosPorNave } = useDataStore()
+  const { documentosPorNave, editarDocumento } = useDataStore()
   const contratistaObra = contratistas[nave.id.charCodeAt(nave.id.length - 1) % 2 === 0 ? 7 : 9]
   const inversionCapExEjecutada = Math.round(nave.superficieConstruccion * 620)
   const permisos = documentosPorNave(nave.id).filter((d) => OBRA_TIPOS.includes(d.tipo))
@@ -205,6 +205,15 @@ export function ObraConstruccionTab({ nave }: { nave: Nave }) {
           estatus={permisoActivo.estatusJuridico}
           archivoActual={archivos[permisoActivo.id] ?? null}
           onArchivoCambiado={(file) => setArchivos((prev) => ({ ...prev, [permisoActivo.id]: file }))}
+          onGuardarCambios={(cambios) =>
+            editarDocumento(permisoActivo.id, {
+              numeroFolio: cambios.numeroFolio,
+              dependenciaEmisora: cambios.dependenciaEmisora,
+              fechaEmision: cambios.fechaEmision,
+              fechaVencimiento: cambios.fechaVencimiento,
+              estatusJuridico: cambios.estatus,
+            })
+          }
         />
       )}
 

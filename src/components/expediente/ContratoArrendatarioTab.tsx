@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { StatusBadge } from '@/components/shared/StatusBadge'
 import { AprobarRechazarDialog } from '@/components/shared/AprobarRechazarDialog'
+import { EditarContratoDialog } from '@/components/expediente/EditarContratoDialog'
 import {
   inquilinoPorNaveId,
   inquilinoById,
@@ -18,7 +19,7 @@ import { usePreferences } from '@/context/PreferencesContext'
 import { useDataStore } from '@/context/DataStoreContext'
 import { formatMoneda } from '@/lib/format'
 import { formatFecha } from '@/lib/dates'
-import { Mail, Phone, ShieldAlert, Users } from 'lucide-react'
+import { Mail, Pencil, Phone, ShieldAlert, Users } from 'lucide-react'
 
 export function ContratoArrendatarioTab({ nave }: { nave: Nave }) {
   const { moneda } = usePreferences()
@@ -37,6 +38,7 @@ export function ContratoArrendatarioTab({ nave }: { nave: Nave }) {
   // "Rechazado". El cambio se refleja en cualquier otra pantalla que lea este
   // mismo contrato (Directorio, alertas de vencimiento, etc.).
   const [dialogoAbierto, setDialogoAbierto] = useState(false)
+  const [editarAbierto, setEditarAbierto] = useState(false)
   const estatusMostrado = contrato?.estatus
 
   return (
@@ -45,8 +47,12 @@ export function ContratoArrendatarioTab({ nave }: { nave: Nave }) {
         {contrato && inquilino ? (
           <>
             <Card>
-              <CardHeader>
+              <CardHeader className="flex-row items-center justify-between">
                 <CardTitle className="text-sm font-semibold">Contrato de Arrendamiento</CardTitle>
+                <Button size="sm" variant="outline" className="h-7 gap-1 text-xs" onClick={() => setEditarAbierto(true)}>
+                  <Pencil className="h-3.5 w-3.5" />
+                  Editar Contrato
+                </Button>
               </CardHeader>
               <CardContent className="flex flex-col gap-2.5 text-sm">
                 <Fila etiqueta="Arrendatario" valor={inquilino.razonSocial} />
@@ -150,6 +156,8 @@ export function ContratoArrendatarioTab({ nave }: { nave: Nave }) {
           onRechazar={() => editarContrato(contrato.id, { estatus: 'En Revisión' })}
         />
       )}
+
+      {contrato && <EditarContratoDialog open={editarAbierto} onOpenChange={setEditarAbierto} contrato={contrato} />}
     </div>
   )
 }

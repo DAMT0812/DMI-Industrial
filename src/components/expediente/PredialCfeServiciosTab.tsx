@@ -10,7 +10,7 @@ import { FileCheck2 } from 'lucide-react'
 const TIPOS_SERVICIOS: TipoDocumento[] = ['Predial', 'Contrato CFE', 'Contrato de Agua y Drenaje', 'Licencia Ambiental Estatal']
 
 export function PredialCfeServiciosTab({ nave }: { nave: Nave }) {
-  const { documentosPorNave } = useDataStore()
+  const { documentosPorNave, editarDocumento } = useDataStore()
   const documentos = documentosPorNave(nave.id).filter((d) => TIPOS_SERVICIOS.includes(d.tipo))
   const [archivos, setArchivos] = useState<Record<string, File>>({})
   const [docAbierto, setDocAbierto] = useState<string | null>(null)
@@ -62,6 +62,15 @@ export function PredialCfeServiciosTab({ nave }: { nave: Nave }) {
           estatus={docActivo.estatusJuridico}
           archivoActual={archivos[docActivo.id] ?? null}
           onArchivoCambiado={(file) => setArchivos((prev) => ({ ...prev, [docActivo.id]: file }))}
+          onGuardarCambios={(cambios) =>
+            editarDocumento(docActivo.id, {
+              numeroFolio: cambios.numeroFolio,
+              dependenciaEmisora: cambios.dependenciaEmisora,
+              fechaEmision: cambios.fechaEmision,
+              fechaVencimiento: cambios.fechaVencimiento,
+              estatusJuridico: cambios.estatus,
+            })
+          }
         />
       )}
     </div>
