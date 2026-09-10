@@ -38,7 +38,7 @@ export function TareasCapexPage() {
       <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <div>
           <div className="text-xs font-semibold uppercase tracking-wide text-brand-cobalt">Asset Management Ops · Q3 Fiscal 2026</div>
-          <h1 className="mt-1 text-2xl font-bold text-primary">Centro de Tareas, CapEx & Vencimientos</h1>
+          <h1 className="mt-1 text-headline-lg-mobile sm:text-headline-lg text-primary">Centro de Tareas, CapEx & Vencimientos</h1>
           <div className="mt-2 flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
             <span className="inline-flex items-center gap-1 font-medium text-status-danger">
               <AlertTriangle className="h-3.5 w-3.5" /> {vencimientosCriticos} vencimientos inminentes

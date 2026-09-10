@@ -118,8 +118,8 @@ export function DirectorioNavesTable() {
                   <TableCell className="tabular text-right">
                     {contrato ? (
                       <>
-                        <div>{formatMoneda(contrato.rentaBaseMensual, moneda)}</div>
-                        <div className="text-xs text-muted-foreground">${contrato.tarifaPorM2.toFixed(2)} USD/m²</div>
+                        <div className="text-metric-dual-primary">{formatMoneda(contrato.rentaBaseMensual, moneda)}</div>
+                        <div className="text-metric-dual-secondary text-muted-foreground">${contrato.tarifaPorM2.toFixed(2)} USD/m²</div>
                       </>
                     ) : (
                       '—'

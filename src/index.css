@@ -9,11 +9,18 @@
  * Brand tokens. Centralized here (Tailwind v4 CSS-first config) so no
  * component hardcodes a hex value directly — see tailwind.config.ts for
  * the plain-TS mirror used outside Tailwind class names (chart series, etc).
+ *
+ * Two layers coexist on purpose:
+ *  - brand-* / status-* / badge-* — the applied palette already live on every
+ *    screen (Deep Slate Navy, Technical Cobalt, CapEx Teal, etc).
+ *  - ipc-* — the full "Industrial Property Core" M3-style token set, kept
+ *    available for surface elevation / secondary-tertiary roles without
+ *    overwriting the brand colors already validated on screen.
  */
 @theme inline {
   --font-sans: 'Inter Variable', ui-sans-serif, system-ui, sans-serif;
 
-  /* Brand palette */
+  /* Brand palette (applied) */
   --color-brand-primary: #384c5c;
   --color-brand-primary-dark: #24333f;
   --color-brand-cobalt: #0284c7;
@@ -24,6 +31,9 @@
   --color-surface: #ffffff;
   --color-surface-secondary: #f1f5f9;
   --color-border-subtle: #e2e8f0;
+  --color-border-active: #cbd5e1;
+  --color-border-hover: #94a3b8;
+  --color-row-alternate: #fafafa;
 
   --color-status-success: #15803d;
   --color-status-success-bg: #dcfce7;
@@ -33,6 +43,20 @@
   --color-status-danger-bg: #fee2e2;
   --color-status-neutral: #475569;
   --color-status-neutral-bg: #f1f5f9;
+
+  /* Badge accents — categoría-específicos, distintos de los tonos de estatus genéricos */
+  --color-badge-mant-text: #92400e;
+  --color-badge-mant-dot: #d97706;
+  --color-badge-mant-bg: #fef3c7;
+  --color-badge-contrato-text: #166534;
+  --color-badge-contrato-dot: #16a34a;
+  --color-badge-contrato-bg: #dcfce7;
+  --color-badge-capex-text: #115e59;
+  --color-badge-capex-dot: #0d9488;
+  --color-badge-capex-bg: #ccfbf1;
+  --color-badge-critico-text: #991b1b;
+  --color-badge-critico-dot: #dc2626;
+  --color-badge-critico-bg: #fee2e2;
 
   /* shadcn/ui semantic tokens, mapped onto the brand palette */
   --color-background: var(--color-app-bg);
@@ -70,11 +94,65 @@
   --color-sidebar-border: var(--color-brand-primary-dark);
   --color-sidebar-ring: var(--color-brand-cobalt);
 
-  /* Radii: 4px for inputs/badges/buttons/cells, 8px for cards/modals */
+  /* "Industrial Property Core" — token completo de referencia (M3-style roles) */
+  --color-ipc-surface: #f8f9ff;
+  --color-ipc-surface-dim: #cbdbf5;
+  --color-ipc-surface-bright: #f8f9ff;
+  --color-ipc-surface-container-lowest: #ffffff;
+  --color-ipc-surface-container-low: #eff4ff;
+  --color-ipc-surface-container: #e5eeff;
+  --color-ipc-surface-container-high: #dce9ff;
+  --color-ipc-surface-container-highest: #d3e4fe;
+  --color-ipc-on-surface: #0b1c30;
+  --color-ipc-on-surface-variant: #43474c;
+  --color-ipc-inverse-surface: #213145;
+  --color-ipc-inverse-on-surface: #eaf1ff;
+  --color-ipc-outline: #73777c;
+  --color-ipc-outline-variant: #c3c7cc;
+  --color-ipc-surface-tint: #4d6171;
+  --color-ipc-primary: #213545;
+  --color-ipc-on-primary: #ffffff;
+  --color-ipc-primary-container: #384c5c;
+  --color-ipc-on-primary-container: #a7bccf;
+  --color-ipc-inverse-primary: #b4c9dc;
+  --color-ipc-secondary: #006398;
+  --color-ipc-on-secondary: #ffffff;
+  --color-ipc-secondary-container: #5bb8fe;
+  --color-ipc-on-secondary-container: #00476e;
+  --color-ipc-tertiary: #003a36;
+  --color-ipc-on-tertiary: #ffffff;
+  --color-ipc-tertiary-container: #00534d;
+  --color-ipc-on-tertiary-container: #72c8be;
+  --color-ipc-error: #ba1a1a;
+  --color-ipc-on-error: #ffffff;
+  --color-ipc-error-container: #ffdad6;
+  --color-ipc-on-error-container: #93000a;
+  --color-ipc-primary-fixed: #d0e5f9;
+  --color-ipc-primary-fixed-dim: #b4c9dc;
+  --color-ipc-on-primary-fixed: #071d2c;
+  --color-ipc-on-primary-fixed-variant: #354959;
+  --color-ipc-secondary-fixed: #cce5ff;
+  --color-ipc-secondary-fixed-dim: #93ccff;
+  --color-ipc-on-secondary-fixed: #001d31;
+  --color-ipc-on-secondary-fixed-variant: #004b73;
+  --color-ipc-tertiary-fixed: #9cf2e8;
+  --color-ipc-tertiary-fixed-dim: #80d5cb;
+  --color-ipc-on-tertiary-fixed: #00201d;
+  --color-ipc-on-tertiary-fixed-variant: #00504a;
+  --color-ipc-background: #f8f9ff;
+  --color-ipc-on-background: #0b1c30;
+  --color-ipc-surface-variant: #d3e4fe;
+
+  /* Radios: 0.125rem–0.75rem escalonados, 9999px reservado para selectores
+     de moneda/unidad e indicadores de conectividad (ver PillToggle). */
+  --radius-2xs: 0.125rem;
+  --radius-xs: 0.25rem;
   --radius-sm: 4px;
   --radius-md: 4px;
   --radius-lg: 8px;
   --radius-xl: 8px;
+  --radius-2xl: 0.75rem;
+  --radius-full: 9999px;
 }
 
 :root {
@@ -96,4 +174,93 @@
 
 @utility tabular {
   font-variant-numeric: tabular-nums;
+}
+
+/*
+ * Escala tipográfica — Industrial Property Core.
+ * Números tabulares ya activos globalmente vía la utilidad `tabular` de arriba;
+ * úsala junto a estas clases en importes, superficies, % y fechas.
+ */
+@utility text-display-xl {
+  font-size: 36px;
+  line-height: 44px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+@utility text-headline-lg {
+  font-size: 28px;
+  line-height: 36px;
+  font-weight: 600;
+  letter-spacing: -0.015em;
+}
+@utility text-headline-lg-mobile {
+  font-size: 22px;
+  line-height: 28px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+@utility text-headline-md {
+  font-size: 20px;
+  line-height: 28px;
+  font-weight: 600;
+}
+@utility text-headline-sm {
+  font-size: 16px;
+  line-height: 24px;
+  font-weight: 600;
+}
+@utility text-title-md {
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 600;
+}
+@utility text-body-lg {
+  font-size: 16px;
+  line-height: 24px;
+  font-weight: 400;
+}
+@utility text-body-md {
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 400;
+}
+@utility text-body-sm {
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: 400;
+}
+@utility text-label-lg {
+  font-size: 13px;
+  line-height: 18px;
+  font-weight: 500;
+}
+@utility text-label-md {
+  font-size: 11px;
+  line-height: 16px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+@utility text-label-sm {
+  font-size: 10px;
+  line-height: 14px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+}
+@utility text-metric-dual-primary {
+  font-size: 18px;
+  line-height: 24px;
+  font-weight: 700;
+}
+@utility text-metric-dual-secondary {
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: 500;
+}
+
+/* Filas de tabla: 2.25rem compactas (correctivos, kanban) / 3rem normales (directorios). */
+@utility row-compact {
+  height: 2.25rem;
+}
+@utility row-normal {
+  height: 3rem;
 }

@@ -50,7 +50,7 @@ export const proyectosCapex: ProyectoCapex[] = [
     inversionEstimada: 2_750_000,
     roiProyectadoPct: 22,
     paybackAnios: 3.6,
-    estatusComite: 'Aprobado x Dirección',
+    estatusComite: 'Aprobado por Dirección',
     cotizaciones: [
       { proveedor: 'Grupo Constructor Meridiano', monto: 2_750_000, garantiaMeses: 24, recibida: true },
       { proveedor: 'Estructuras Metálicas Torreón', monto: 2_890_000, garantiaMeses: 18, recibida: true },
@@ -119,7 +119,7 @@ export const proyectoCapexPorNave = (naveId: string) => proyectosCapex.filter((p
 
 export const capexAutorizadoTotal = () =>
   proyectosCapex
-    .filter((p) => p.estatusComite === 'Aprobado x Dirección' || p.estatusComite === 'En Ejecución' || p.estatusComite === 'Concluido')
+    .filter((p) => p.estatusComite === 'Aprobado por Dirección' || p.estatusComite === 'En Ejecución' || p.estatusComite === 'Concluido')
     .reduce((acc, p) => acc + p.inversionEstimada, 0)
 
 export const capexDisponiblePct = () => {

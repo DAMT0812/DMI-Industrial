@@ -40,7 +40,7 @@ export function ExpedienteNavePage() {
               </span>
             )}
           </div>
-          <h1 className="mt-1.5 text-2xl font-bold text-primary">
+          <h1 className="mt-1.5 text-headline-lg-mobile sm:text-headline-lg text-primary">
             {parque.nombre} — Nave {nave.numeroNave}
           </h1>
           <p className="text-sm text-muted-foreground">{parque.corredorIndustrial}</p>
@@ -67,12 +67,12 @@ export function ExpedienteNavePage() {
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <div className="rounded-lg border border-border bg-card p-4">
-          <div className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Superficie Terreno & GLA</div>
-          <div className="tabular mt-1.5 text-xl font-bold text-primary">{formatSuperficie(nave.gla, unidad)}</div>
+          <div className="text-label-md uppercase text-muted-foreground">Superficie Terreno & GLA</div>
+          <div className="tabular mt-1.5 text-headline-md font-bold text-primary">{formatSuperficie(nave.gla, unidad)}</div>
           <div className="tabular text-xs text-muted-foreground">Terreno {formatSuperficie(nave.superficieTerreno, unidad)}</div>
         </div>
         <div className="rounded-lg border border-border bg-card p-4">
-          <div className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Inquilino Corporativo</div>
+          <div className="text-label-md uppercase text-muted-foreground">Inquilino Corporativo</div>
           <div className="mt-1.5 truncate text-lg font-bold text-primary">{inquilino ? inquilino.nombreComercial : 'Disponible'}</div>
           {contrato && (
             <div className="mt-1">
@@ -81,10 +81,10 @@ export function ExpedienteNavePage() {
           )}
         </div>
         <div className="rounded-lg border border-border bg-card p-4">
-          <div className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Renta Base Contractual</div>
+          <div className="text-label-md uppercase text-muted-foreground">Renta Base Contractual</div>
           {contrato ? (
             <>
-              <div className="tabular mt-1.5 text-xl font-bold text-primary">{formatMoneda(contrato.rentaBaseMensual, moneda)}</div>
+              <div className="tabular mt-1.5 text-headline-md font-bold text-primary">{formatMoneda(contrato.rentaBaseMensual, moneda)}</div>
               <div className="tabular text-xs text-muted-foreground">${contrato.tarifaPorM2.toFixed(2)} USD/m² · mensual</div>
             </>
           ) : (
@@ -92,10 +92,10 @@ export function ExpedienteNavePage() {
           )}
         </div>
         <div className="rounded-lg border border-border bg-card p-4">
-          <div className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Vigencia de Arrendamiento</div>
+          <div className="text-label-md uppercase text-muted-foreground">Vigencia de Arrendamiento</div>
           {contrato ? (
             <>
-              <div className="tabular mt-1.5 text-xl font-bold text-primary">{mesesRestantesContrato} meses</div>
+              <div className="tabular mt-1.5 text-headline-md font-bold text-primary">{mesesRestantesContrato} meses</div>
               <StatusBadge estatus={nave.estatusOperativo} className="mt-1" />
             </>
           ) : (

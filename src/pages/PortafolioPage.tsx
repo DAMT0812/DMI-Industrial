@@ -47,7 +47,7 @@ export function PortafolioPage() {
           <div className="text-xs font-semibold uppercase tracking-wide text-brand-cobalt">
             Portafolio Institucional / Consolidado Nacional · {periodo}
           </div>
-          <h1 className="mt-1 text-2xl font-bold text-primary">Supervisión Ejecutiva de Activos Industriales</h1>
+          <h1 className="mt-1 text-headline-lg-mobile sm:text-headline-lg text-primary">Supervisión Ejecutiva de Activos Industriales</h1>
           <p className="mt-1 text-sm text-muted-foreground">
             {parques.length} parques industriales · {totalNaves()} naves · cobertura Bajío, Norte y Occidente
           </p>

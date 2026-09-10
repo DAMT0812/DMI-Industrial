@@ -52,15 +52,15 @@ function alertasDePredial(): AlertaVencimiento[] {
   return documentos
     .filter((d) => d.tipo === 'Predial' && d.fechaVencimiento)
     .map((d) => ({ d, dias: diasParaVencer(d.fechaVencimiento)! }))
-    .filter(({ dias, d }) => dias <= 60 || d.estatusJuridico === 'En Mora')
+    .filter(({ dias, d }) => dias <= 60 || d.estatusJuridico === 'En mora / fuera de plazo')
     .sort((a, b) => a.dias - b.dias)
     .map(({ d, dias }) => ({
       id: nextId(),
       tipo: 'Tesorería Municipal',
       naveId: d.naveId,
-      descripcion: `Predial ${d.estatusJuridico === 'En Mora' ? 'en mora' : 'ciclo enero–febrero'} · Folio ${d.numeroFolio} — ${nombreNave(d.naveId)}`,
+      descripcion: `Predial ${d.estatusJuridico === 'En mora / fuera de plazo' ? 'en mora' : 'ciclo enero–febrero'} · Folio ${d.numeroFolio} — ${nombreNave(d.naveId)}`,
       diasParaVencer: dias,
-      urgencia: d.estatusJuridico === 'En Mora' ? 'Crítico Inminente' : urgenciaPorDias(dias, 30, 60),
+      urgencia: d.estatusJuridico === 'En mora / fuera de plazo' ? 'Crítico Inminente' : urgenciaPorDias(dias, 30, 60),
       montoOSuperficie: null,
       responsable: 'C.P. Renata Solís — Coordinadora de Cobranza CAM',
       accion: 'Liquidar en Tesorería',
@@ -89,6 +89,27 @@ function alertasDeProteccionCivil(): AlertaVencimiento[] {
     }))
 }
 
+function alertasDeLicenciaAmbiental(): AlertaVencimiento[] {
+  return documentos
+    .filter((d) => d.tipo === 'Licencia Ambiental Estatal' && d.fechaVencimiento)
+    .map((d) => ({ d, dias: diasParaVencer(d.fechaVencimiento)! }))
+    .filter(({ dias }) => dias <= 90)
+    .sort((a, b) => a.dias - b.dias)
+    .slice(0, 2)
+    .map(({ d, dias }) => ({
+      id: nextId(),
+      tipo: 'Licencia Ambiental',
+      naveId: d.naveId,
+      descripcion: `Renovación de Licencia Ambiental Estatal · Folio ${d.numeroFolio} — ${nombreNave(d.naveId)}`,
+      diasParaVencer: dias,
+      urgencia: urgenciaPorDias(dias, 45, 90),
+      montoOSuperficie: null,
+      responsable: 'Lic. Andrés Villalpando — Coordinador Legal & Cumplimiento',
+      accion: 'Gestionar Renovación',
+      estatus: 'Pendiente',
+    }))
+}
+
 function alertasDeLeasing(): AlertaVencimiento[] {
   return contratos
     .map((c) => ({ c, dias: diasParaVencer(c.fechaVencimiento)! }))
@@ -111,7 +132,7 @@ function alertasDeLeasing(): AlertaVencimiento[] {
 
 function alertasDeSLA(): AlertaVencimiento[] {
   return ordenesTrabajo
-    .filter((o) => o.estatus !== 'Cerrada' && (o.prioridad === 'Crítica' || o.prioridad === 'Alta'))
+    .filter((o) => o.estatus !== 'Validado' && o.estatus !== 'Cancelada' && (o.prioridad === 'Crítica' || o.prioridad === 'Alta'))
     .slice(0, 2)
     .map((o) => ({
       id: nextId(),
@@ -131,6 +152,7 @@ export const alertas: AlertaVencimiento[] = [
   ...alertasDePolizas(),
   ...alertasDePredial(),
   ...alertasDeProteccionCivil(),
+  ...alertasDeLicenciaAmbiental(),
   ...alertasDeLeasing(),
   ...alertasDeSLA(),
 ].sort((a, b) => a.diasParaVencer - b.diasParaVencer)

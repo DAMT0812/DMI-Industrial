@@ -42,7 +42,7 @@ export function MantenimientoPage() {
           <div className="text-xs font-semibold uppercase tracking-wide text-brand-cobalt">
             Asset Class: Logística & Manufactura Clase A · T3 2026
           </div>
-          <h1 className="mt-1 text-2xl font-bold text-primary">Supervisión Operativa & Mantenimiento Institucional</h1>
+          <h1 className="mt-1 text-headline-lg-mobile sm:text-headline-lg text-primary">Supervisión Operativa & Mantenimiento Institucional</h1>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <Button variant="outline" className="gap-1.5">
@@ -156,7 +156,7 @@ export function MantenimientoPage() {
                 </TableHeader>
                 <TableBody>
                   {ordenesTrabajo
-                    .filter((o) => o.estatus !== 'Cerrada')
+                    .filter((o) => o.estatus !== 'Validado' && o.estatus !== 'Cancelada')
                     .map((o) => {
                       const nave = naveById(o.naveId)!
                       const parque = parqueById(nave.parqueId)!

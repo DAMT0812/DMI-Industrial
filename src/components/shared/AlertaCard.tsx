@@ -21,7 +21,7 @@ export function AlertaCard({ alerta }: { alerta: AlertaVencimiento }) {
   return (
     <div className={cn('flex min-w-[280px] flex-1 flex-col gap-2 rounded-lg border border-l-4 border-border bg-card p-3.5', estilo.borde)}>
       <div className="flex items-start justify-between gap-2">
-        <div className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+        <div className="flex items-center gap-1.5 text-label-md uppercase text-muted-foreground">
           <Icono className={cn('h-3.5 w-3.5', estilo.iconoColor)} />
           {alerta.tipo}
         </div>

@@ -13,6 +13,14 @@ export type EstatusOperativo =
 
 export type EstatusGeneral = 'Pendiente' | 'En Revisión' | 'Aprobado' | 'Rechazado' | 'En Mora'
 
+// Catálogo de cumplimiento documental — etiquetas combinadas según el prompt de referencia.
+export type EstatusDocumental =
+  | 'Pendiente de envío / por vencer'
+  | 'En revisión / pendiente de aprobación'
+  | 'Aprobado / al día'
+  | 'Rechazado / requiere corrección'
+  | 'En mora / fuera de plazo'
+
 export type Industria =
   | 'Manufactura Avanzada'
   | 'Logística & E-commerce'
@@ -93,7 +101,9 @@ export interface ContratoArrendamiento {
   tipoContrato: TipoContrato
   avalista: string
   clausulasEspeciales: string[]
-  estatus: EstatusGeneral | 'Vigente'
+  // "Terminación Programada": Dirección decidió no renovar; el contrato sigue vigente
+  // hasta su fecha de vencimiento y luego pasa a historial (no reabre negociación).
+  estatus: EstatusGeneral | 'Vigente' | 'Terminación Programada'
 }
 
 export type TipoDocumento =
@@ -116,7 +126,7 @@ export interface DocumentoPermiso {
   numeroFolio: string
   fechaEmision: string
   fechaVencimiento: string | null
-  estatusJuridico: EstatusGeneral | 'Vigente'
+  estatusJuridico: EstatusDocumental
   archivoUrl: string
 }
 
@@ -145,7 +155,9 @@ export interface SistemaCritico {
 }
 
 export type PrioridadTicket = 'Crítica' | 'Alta' | 'Media' | 'Baja'
-export type EstatusTicket = 'Abierta' | 'En Proceso' | 'Esperando Refacción' | 'Cerrada'
+// Abierta → En ejecución → (Esperando Refacción, si aplica) → Pendiente de Evidencia → Validado.
+// Cancelada es un estado alterno terminal, distinto de Validado, desde cualquier estado activo.
+export type EstatusTicket = 'Abierta' | 'En ejecución' | 'Esperando Refacción' | 'Pendiente de Evidencia' | 'Validado' | 'Cancelada'
 
 export interface OrdenTrabajo {
   id: string
@@ -174,9 +186,10 @@ export interface Contratista {
   porcentajeOnTime: number
 }
 
+// Rechazado es terminal: sale del pipeline activo y no se reenvía al comité.
 export type EstatusComiteCapex =
   | 'En Revisión Comité'
-  | 'Aprobado x Dirección'
+  | 'Aprobado por Dirección'
   | 'Pendiente 3ra Cotización'
   | 'En Ejecución'
   | 'Concluido'

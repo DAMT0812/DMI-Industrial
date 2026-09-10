@@ -4,20 +4,24 @@ import { contratistaById } from './contratistas'
 
 // Deriva el flujo de "Tareas Vivas" directamente de las órdenes de trabajo reales
 // (misma fuente que el Tablero CMMS) para que ambos tableros nunca queden desincronizados.
-export const tareasVivas: TareaViva[] = ordenesTrabajo.map((o, idx) => {
+// Una orden Cancelada sale del flujo de Tareas Vivas por completo — no debe seguir
+// contando como pendiente ni ocupar ninguna de las tres columnas.
+export const tareasVivas: TareaViva[] = ordenesTrabajo
+  .filter((o) => o.estatus !== 'Cancelada')
+  .map((o, idx) => {
   const contratista = contratistaById(o.contratistaId)
   let columna: TareaViva['columna']
   let avancePct: number | null = null
   let estatusCierre: TareaViva['estatusCierre'] = null
 
-  if (o.estatus === 'Cerrada') {
+  if (o.estatus === 'Validado') {
     columna = 'completada'
     estatusCierre = idx % 3 === 0 ? 'Facturado' : 'Cerrado & Auditado'
   } else if (o.estatus === 'Abierta' && (o.prioridad === 'Crítica' || o.prioridad === 'Alta')) {
     columna = 'urgente'
   } else {
     columna = 'en-ejecucion'
-    avancePct = 25 + ((idx * 13) % 60)
+    avancePct = o.estatus === 'Pendiente de Evidencia' ? 100 : 25 + ((idx * 13) % 60)
   }
 
   return {

@@ -8,10 +8,10 @@ const COLUMNAS: ColumnaKanban[] = ['Por Iniciar', 'En Cotizaci√≥n', 'En Ejecuci√
 
 const CATEGORIA_TONO: Record<string, string> = {
   'Regulatorio Legal': 'bg-status-danger-bg text-status-danger',
-  'CapEx Prioritario': 'bg-brand-cobalt/10 text-brand-cobalt',
+  'CapEx Prioritario': 'bg-badge-capex-bg text-badge-capex-text',
   'Correctivo Inmediato': 'bg-status-warning-bg text-status-warning',
-  Preventivo: 'bg-status-success-bg text-status-success',
-  'Mantenimiento Mayor': 'bg-brand-pine/10 text-brand-pine',
+  Preventivo: 'bg-badge-mant-bg text-badge-mant-text',
+  'Mantenimiento Mayor': 'bg-badge-mant-bg text-badge-mant-text',
   'Cobranza CAM': 'bg-status-neutral-bg text-status-neutral',
   'Sanidad Operativa': 'bg-status-neutral-bg text-status-neutral',
 }
