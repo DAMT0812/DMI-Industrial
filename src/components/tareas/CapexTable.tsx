@@ -1,8 +1,10 @@
 import { useState } from 'react'
+import { Pencil } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog'
 import { StatusBadge } from '@/components/shared/StatusBadge'
+import { EditarCapexDialog } from '@/components/tareas/EditarCapexDialog'
 import { parqueById, type ProyectoCapex } from '@/data'
 import { usePreferences } from '@/context/PreferencesContext'
 import { useDataStore } from '@/context/DataStoreContext'
@@ -12,6 +14,7 @@ export function CapexTable() {
   const { moneda, unidad } = usePreferences()
   const { proyectosCapex, naveById } = useDataStore()
   const [seleccionado, setSeleccionado] = useState<ProyectoCapex | null>(null)
+  const [proyectoParaEditar, setProyectoParaEditar] = useState<ProyectoCapex | null>(null)
   const [votos, setVotos] = useState<Record<string, boolean>>({})
 
   const nave = seleccionado ? naveById(seleccionado.naveId) : null
@@ -54,9 +57,14 @@ export function CapexTable() {
                     {votos[p.id] && <div className="mt-1 text-[11px] font-medium text-status-success">Voto registrado ✓</div>}
                   </TableCell>
                   <TableCell className="text-right">
-                    <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => setSeleccionado(p)}>
-                      Ver Ficha
-                    </Button>
+                    <div className="flex justify-end gap-1.5">
+                      <Button size="icon-sm" variant="outline" className="h-7 w-7" aria-label="Editar proyecto CapEx" onClick={() => setProyectoParaEditar(p)}>
+                        <Pencil className="h-3.5 w-3.5" />
+                      </Button>
+                      <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => setSeleccionado(p)}>
+                        Ver Ficha
+                      </Button>
+                    </div>
                   </TableCell>
                 </TableRow>
               )
@@ -120,6 +128,10 @@ export function CapexTable() {
           )}
         </DialogContent>
       </Dialog>
+
+      {proyectoParaEditar && (
+        <EditarCapexDialog open={proyectoParaEditar !== null} onOpenChange={(open) => !open && setProyectoParaEditar(null)} proyecto={proyectoParaEditar} />
+      )}
     </>
   )
 }
