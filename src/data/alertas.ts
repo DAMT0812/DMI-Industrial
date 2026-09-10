@@ -83,7 +83,7 @@ function alertasDeProteccionCivil(): AlertaVencimiento[] {
       diasParaVencer: dias,
       urgencia: urgenciaPorDias(dias, 10, 30),
       montoOSuperficie: null,
-      responsable: 'Ing. Tomás Guerrero — Facility Manager',
+      responsable: 'Ing. Tomás Guerrero — Facility Manager Regional Norte',
       accion: 'Ver Certificado PDF',
       estatus: 'Pendiente',
     }))
@@ -142,7 +142,7 @@ function alertasDeSLA(): AlertaVencimiento[] {
       diasParaVencer: 0,
       urgencia: o.prioridad === 'Crítica' ? 'Crítico Inminente' : 'Garantía Legal',
       montoOSuperficie: null,
-      responsable: 'Ing. Tomás Guerrero — Facility Manager',
+      responsable: 'Ing. Tomás Guerrero — Facility Manager Regional Norte',
       accion: 'Ver Orden de Trabajo',
       estatus: 'Pendiente',
     }))

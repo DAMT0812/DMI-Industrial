@@ -1,8 +1,10 @@
 import type { Nave } from './types'
 
+type NaveSeed = Omit<Nave, 'usoDeSuelo' | 'sistemaConstructivo' | 'numeroCajonesEstacionamiento' | 'tipoIluminacion'>
+
 // 19 naves distribuidas en los 14 parques industriales del portafolio.
 // El folio sigue el patrón DMI-<ESTADO>-<PARQUE>-N<NUM>.
-export const naves: Nave[] = [
+const navesSeed: NaveSeed[] = [
   {
     id: 'NAVE-01',
     folio: 'DMI-JAL-SLT-N04',
@@ -498,5 +500,32 @@ export const naves: Nave[] = [
     fechaEntrega: '2017-02-16',
   },
 ]
+
+function usoDeSueloPara(tipoPropiedad: NaveSeed['tipoPropiedad']): string {
+  if (tipoPropiedad === 'Bodega Logística') return 'I-1 Industria Ligera y de Riesgo Bajo (Uso Logístico)'
+  if (tipoPropiedad === 'Terreno') return 'I-2 Industria Mediana e Intensiva (Reserva Territorial)'
+  return 'I-2 Industria Mediana e Intensiva'
+}
+
+function sistemaConstructivoPara(claseActivo: NaveSeed['claseActivo']): string {
+  return claseActivo === 'Clase A'
+    ? 'Estructura metálica prefabricada, muros de block y panel aislante, cubierta tipo sándwich'
+    : 'Estructura metálica, muros de block, cubierta galvanizada'
+}
+
+function tipoIluminacionPara(fechaEntrega: string): string {
+  const anio = new Date(fechaEntrega).getFullYear()
+  return anio < 2019 ? 'Aditivos metálicos (HID) en nave / LED en oficinas administrativas' : 'LED de alta eficiencia en nave y oficinas'
+}
+
+// Deriva los campos de infraestructura complementaria a partir de los datos
+// base de cada nave, en vez de capturarlos manualmente uno por uno.
+export const naves: Nave[] = navesSeed.map((n) => ({
+  ...n,
+  usoDeSuelo: usoDeSueloPara(n.tipoPropiedad),
+  sistemaConstructivo: sistemaConstructivoPara(n.claseActivo),
+  numeroCajonesEstacionamiento: Math.round(n.gla / 180) + Math.round(n.areaOficinas / 20),
+  tipoIluminacion: tipoIluminacionPara(n.fechaEntrega),
+}))
 
 export const naveById = (id: string) => naves.find((n) => n.id === id)

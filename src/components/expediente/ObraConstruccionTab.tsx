@@ -2,9 +2,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Button } from '@/components/ui/button'
 import { StatusBadge } from '@/components/shared/StatusBadge'
-import { documentosPorNave, contratistas, type Nave } from '@/data'
+import { documentosPorNave, estudiosPorNave, propietarioPorNave, contratistas, type Nave } from '@/data'
 import { formatFecha } from '@/lib/dates'
-import { FileDown, FileText } from 'lucide-react'
+import { FileDown, FileText, Landmark } from 'lucide-react'
 
 const OBRA_TIPOS = ['Licencia de Construcción', 'Manifestación de Impacto Ambiental', 'Dictamen de Protección Civil', 'Memoria de Cálculo Estructural']
 
@@ -19,6 +19,8 @@ export function ObraConstruccionTab({ nave }: { nave: Nave }) {
   const contratistaObra = contratistas[nave.id.charCodeAt(nave.id.length - 1) % 2 === 0 ? 7 : 9]
   const inversionCapExEjecutada = Math.round(nave.superficieConstruccion * 620)
   const permisos = documentosPorNave(nave.id).filter((d) => OBRA_TIPOS.includes(d.tipo))
+  const estudios = estudiosPorNave(nave.id)
+  const propietario = propietarioPorNave(nave.id)
 
   return (
     <div className="flex flex-col gap-6">
@@ -50,10 +52,40 @@ export function ObraConstruccionTab({ nave }: { nave: Nave }) {
             <Fila etiqueta="Bahía de Columnas" valor={nave.bahiaColumnas} tabular />
             <Fila etiqueta="Andenes / Rampas" valor={`${nave.numeroAndenes} andenes / ${nave.numeroRampas} rampas`} tabular />
             <Fila etiqueta="Capacidad Eléctrica" valor={`${nave.capacidadElectrica} KVA`} tabular />
+            <Fila etiqueta="Sistema Constructivo" valor={nave.sistemaConstructivo} />
+            <Fila etiqueta="Iluminación" valor={nave.tipoIluminacion} />
+            <Fila etiqueta="Cajones de Estacionamiento" valor={`${nave.numeroCajonesEstacionamiento}`} tabular />
+            <Fila etiqueta="Uso de Suelo" valor={nave.usoDeSuelo} />
             <Fila etiqueta="Norma Técnica de Referencia" valor="ACI 302.1R / NMX-C-406-ONNCCE" />
           </CardContent>
         </Card>
       </div>
+
+      {propietario && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-sm font-semibold">
+              <Landmark className="h-4 w-4 text-brand-cobalt" />
+              Datos Legales del Propietario
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="grid grid-cols-1 gap-x-8 gap-y-2.5 text-sm sm:grid-cols-2">
+            <Fila etiqueta="Propietario" valor={propietario.razonSocial} />
+            <Fila etiqueta="RFC" valor={propietario.rfc} tabular />
+            <Fila etiqueta="Régimen de Propiedad" valor={propietario.regimenPropiedad} />
+            <Fila etiqueta="Número de Escritura" valor={propietario.numeroEscritura} tabular />
+            <Fila etiqueta="Notario" valor={propietario.notario} />
+            <Fila etiqueta="Folio RPP" valor={propietario.folioRPP} tabular />
+            <div className="sm:col-span-2">
+              <Fila
+                etiqueta="Gravámenes"
+                valor={propietario.gravamenes ?? 'Libre de gravamen'}
+                tabular={false}
+              />
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       <Card>
         <CardHeader>
@@ -95,6 +127,42 @@ export function ObraConstruccionTab({ nave }: { nave: Nave }) {
         </CardContent>
       </Card>
 
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-sm font-semibold">Estudios Técnicos de Due Diligence</CardTitle>
+        </CardHeader>
+        <CardContent className="p-0">
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Estudio</TableHead>
+                  <TableHead>Empresa Consultora</TableHead>
+                  <TableHead>Fecha de Realización</TableHead>
+                  <TableHead>Resultado</TableHead>
+                  <TableHead className="text-right">Acción</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {estudios.map((e) => (
+                  <TableRow key={e.id}>
+                    <TableCell className="font-medium text-foreground">{e.tipo}</TableCell>
+                    <TableCell className="text-xs text-muted-foreground">{e.empresaConsultora}</TableCell>
+                    <TableCell className="tabular text-xs">{formatFecha(e.fechaRealizacion)}</TableCell>
+                    <TableCell className="max-w-[260px] text-xs text-muted-foreground">{e.resultado}</TableCell>
+                    <TableCell className="text-right">
+                      <Button size="sm" variant="outline" className="h-7 text-xs">
+                        Ver PDF
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        </CardContent>
+      </Card>
+
       <div>
         <h3 className="mb-3 text-sm font-semibold text-foreground">Planos Arquitectónicos & As-Built</h3>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
@@ -118,8 +186,8 @@ export function ObraConstruccionTab({ nave }: { nave: Nave }) {
 
 function Fila({ etiqueta, valor, tabular }: { etiqueta: string; valor: string; tabular?: boolean }) {
   return (
-    <div className="flex items-center justify-between gap-3">
-      <span className="text-xs font-medium text-muted-foreground">{etiqueta}</span>
+    <div className="flex items-start justify-between gap-3">
+      <span className="shrink-0 text-xs font-medium text-muted-foreground">{etiqueta}</span>
       <span className={`text-right text-sm text-foreground ${tabular ? 'tabular' : ''}`}>{valor}</span>
     </div>
   )

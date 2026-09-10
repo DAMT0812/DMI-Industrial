@@ -56,6 +56,10 @@ export interface Nave {
   capacidadElectrica: number // KVA
   pisoFFFL: string // ej. "FF 50 / FL 75"
   bahiaColumnas: string // ej. "12m x 24m"
+  usoDeSuelo: string // ej. "I-2 Industria Mediana e Intensiva"
+  sistemaConstructivo: string // ej. "Estructura metálica prefabricada / muros de block"
+  numeroCajonesEstacionamiento: number
+  tipoIluminacion: string // ej. "LED alta eficiencia (galpón) / ahorradora (oficinas)"
   certificacionLEED: 'LEED Gold' | 'LEED Silver' | 'LEED Platinum' | null
   certificacionESG: boolean
   cumplimientoSTPS: number // % NOM vigente
@@ -128,6 +132,48 @@ export interface DocumentoPermiso {
   fechaVencimiento: string | null
   estatusJuridico: EstatusDocumental
   archivoUrl: string
+}
+
+export type RegimenPropiedad = 'Propiedad Privada' | 'Copropiedad' | 'Fideicomiso Inmobiliario'
+
+export interface PropietarioLegal {
+  naveId: string
+  razonSocial: string
+  rfc: string
+  regimenPropiedad: RegimenPropiedad
+  numeroEscritura: string
+  notario: string // nombre + número de notaría + ciudad
+  folioRPP: string // Registro Público de la Propiedad
+  gravamenes: string | null // descripción del gravamen o null si está libre
+}
+
+export type TipoEstudioTecnico = 'Mecánica de Suelos' | 'Estudio Topográfico' | 'Ambiental Fase I' | 'PCA (Property Condition Assessment)'
+
+export interface EstudioTecnico {
+  id: string
+  naveId: string
+  tipo: TipoEstudioTecnico
+  empresaConsultora: string
+  fechaRealizacion: string
+  resultado: string
+  archivoUrl: string
+}
+
+export type TipoContactoEmergencia = 'Bomberos' | 'Cruz Roja / Ambulancia' | 'Protección Civil Municipal' | 'Seguridad Privada 24/7'
+
+export interface ContactoEmergencia {
+  naveId: string
+  tipo: TipoContactoEmergencia
+  nombre: string
+  telefono: string
+}
+
+export interface Broker {
+  id: string
+  nombre: string
+  inmobiliaria: string
+  telefono: string
+  email: string
 }
 
 export type TipoSistemaCritico =
