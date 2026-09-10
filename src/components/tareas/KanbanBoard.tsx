@@ -1,9 +1,13 @@
+import { useState } from 'react'
+import { Pencil } from 'lucide-react'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
+import { Button } from '@/components/ui/button'
 import { parqueById, type ColumnaKanban, type TareaOperativa } from '@/data'
 import { usePreferences } from '@/context/PreferencesContext'
 import { useDataStore } from '@/context/DataStoreContext'
 import { formatMoneda } from '@/lib/format'
 import { cn } from '@/lib/utils'
+import { EditarTareaDialog } from '@/components/tareas/EditarTareaDialog'
 
 const COLUMNAS: ColumnaKanban[] = ['Por Iniciar', 'En Cotización', 'En Ejecución', 'Completado & Auditado']
 
@@ -26,7 +30,7 @@ function iniciales(nombre: string) {
     .join('')
 }
 
-function TareaCard({ tarea }: { tarea: TareaOperativa }) {
+function TareaCard({ tarea, onEditar }: { tarea: TareaOperativa; onEditar: (tarea: TareaOperativa) => void }) {
   const { moneda } = usePreferences()
   const { naveById } = useDataStore()
   const nave = naveById(tarea.naveId)
@@ -34,9 +38,14 @@ function TareaCard({ tarea }: { tarea: TareaOperativa }) {
 
   return (
     <div className="rounded-md border border-border bg-card p-3 shadow-sm">
-      <span className={cn('inline-flex rounded-sm px-1.5 py-0.5 text-[10px] font-semibold', CATEGORIA_TONO[tarea.categoria] ?? 'bg-muted text-muted-foreground')}>
-        {tarea.categoria}
-      </span>
+      <div className="flex items-start justify-between gap-2">
+        <span className={cn('inline-flex rounded-sm px-1.5 py-0.5 text-[10px] font-semibold', CATEGORIA_TONO[tarea.categoria] ?? 'bg-muted text-muted-foreground')}>
+          {tarea.categoria}
+        </span>
+        <Button size="icon-sm" variant="ghost" className="h-5 w-5 shrink-0 text-muted-foreground" aria-label="Editar tarea" onClick={() => onEditar(tarea)}>
+          <Pencil className="h-3 w-3" />
+        </Button>
+      </div>
       <p className="mt-2 text-sm leading-snug font-medium text-foreground">{tarea.titulo}</p>
       <p className="mt-1 text-xs text-muted-foreground">
         {parque?.nombre} — Nave {nave?.numeroNave}
@@ -68,6 +77,7 @@ function TareaCard({ tarea }: { tarea: TareaOperativa }) {
 export function KanbanBoard() {
   const { perfilSimulado } = usePreferences()
   const { tareasOperativas, naveById } = useDataStore()
+  const [tareaParaEditar, setTareaParaEditar] = useState<TareaOperativa | null>(null)
 
   return (
     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
@@ -83,12 +93,16 @@ export function KanbanBoard() {
             </div>
             <div className="flex flex-col gap-2.5">
               {tareas.map((t) => (
-                <TareaCard key={t.id} tarea={t} />
+                <TareaCard key={t.id} tarea={t} onEditar={setTareaParaEditar} />
               ))}
             </div>
           </div>
         )
       })}
+
+      {tareaParaEditar && (
+        <EditarTareaDialog open={tareaParaEditar !== null} onOpenChange={(open) => !open && setTareaParaEditar(null)} tarea={tareaParaEditar} />
+      )}
     </div>
   )
 }

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { AlertOctagon, ClipboardCheck, Clock, Download, DollarSign, PlusCircle, Star, Wrench } from 'lucide-react'
+import { AlertOctagon, ClipboardCheck, Clock, Download, DollarSign, Pencil, PlusCircle, Star, Wrench } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
@@ -7,6 +7,7 @@ import { KpiCard } from '@/components/shared/KpiCard'
 import { StatusBadge } from '@/components/shared/StatusBadge'
 import { AprobarRechazarDialog } from '@/components/shared/AprobarRechazarDialog'
 import { CalendarioMantenimiento } from '@/components/mantenimiento/CalendarioMantenimiento'
+import { EditarOrdenDialog } from '@/components/mantenimiento/EditarOrdenDialog'
 import { usePreferences } from '@/context/PreferencesContext'
 import { useDataStore } from '@/context/DataStoreContext'
 import {
@@ -46,6 +47,7 @@ export function MantenimientoPage() {
   // valida o rechaza el cierre de una orden en "Pendiente de Evidencia" — el
   // cambio se refleja en todas las pantallas que lean esta misma orden.
   const [otParaValidar, setOtParaValidar] = useState<OrdenTrabajo | null>(null)
+  const [otParaEditar, setOtParaEditar] = useState<OrdenTrabajo | null>(null)
 
   return (
     <div className="flex flex-col gap-6">
@@ -195,12 +197,17 @@ export function MantenimientoPage() {
                             <StatusBadge estatus={estatus} />
                           </TableCell>
                           <TableCell className="text-right">
-                            {estatus === 'Pendiente de Evidencia' && (
-                              <Button size="sm" variant="outline" className="h-7 gap-1 text-xs" onClick={() => setOtParaValidar(o)}>
-                                <ClipboardCheck className="h-3.5 w-3.5" />
-                                Validar Cierre
+                            <div className="flex justify-end gap-1.5">
+                              <Button size="icon-sm" variant="outline" className="h-7 w-7" aria-label="Editar orden" onClick={() => setOtParaEditar(o)}>
+                                <Pencil className="h-3.5 w-3.5" />
                               </Button>
-                            )}
+                              {estatus === 'Pendiente de Evidencia' && (
+                                <Button size="sm" variant="outline" className="h-7 gap-1 text-xs" onClick={() => setOtParaValidar(o)}>
+                                  <ClipboardCheck className="h-3.5 w-3.5" />
+                                  Validar Cierre
+                                </Button>
+                              )}
+                            </div>
                           </TableCell>
                         </TableRow>
                       )
@@ -277,6 +284,8 @@ export function MantenimientoPage() {
         onAprobar={() => otParaValidar && editarOrden(otParaValidar.id, { estatus: 'Validado', fechaCierre: HOY.toISOString().slice(0, 10) })}
         onRechazar={() => otParaValidar && editarOrden(otParaValidar.id, { estatus: 'En ejecución' })}
       />
+
+      {otParaEditar && <EditarOrdenDialog open={otParaEditar !== null} onOpenChange={(open) => !open && setOtParaEditar(null)} orden={otParaEditar} />}
     </div>
   )
 }
