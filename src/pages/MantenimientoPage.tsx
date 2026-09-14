@@ -10,6 +10,7 @@ import { CalendarioMantenimiento } from '@/components/mantenimiento/CalendarioMa
 import { EditarOrdenDialog } from '@/components/mantenimiento/EditarOrdenDialog'
 import { usePreferences } from '@/context/PreferencesContext'
 import { useDataStore } from '@/context/DataStoreContext'
+import { useAuth } from '@/context/AuthContext'
 import {
   matrizConfiabilidad,
   contratistas,
@@ -28,7 +29,8 @@ import { HOY } from '@/lib/dates'
 import { formatMoneda, formatPct } from '@/lib/format'
 
 export function MantenimientoPage() {
-  const { moneda, perfilSimulado } = usePreferences()
+  const { moneda } = usePreferences()
+  const { perfilActivo } = useAuth()
   const {
     ordenesTrabajo,
     naveById,
@@ -172,7 +174,7 @@ export function MantenimientoPage() {
                 <TableBody>
                   {ordenesTrabajo
                     .filter((o) => o.estatus !== 'Validado' && o.estatus !== 'Cancelada')
-                    .filter((o) => perfilSimulado.region === 'todas' || parqueById(naveById(o.naveId)!.parqueId)?.region === perfilSimulado.region)
+                    .filter((o) => perfilActivo.region === 'todas' || parqueById(naveById(o.naveId)!.parqueId)?.region === perfilActivo.region)
                     .map((o) => {
                       const nave = naveById(o.naveId)!
                       const parque = parqueById(nave.parqueId)!

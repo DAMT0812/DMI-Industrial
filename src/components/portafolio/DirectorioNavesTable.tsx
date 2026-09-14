@@ -8,6 +8,7 @@ import { AltaInmuebleDialog } from '@/components/portafolio/AltaInmuebleDialog'
 import { parqueById, inquilinoPorNaveId, inquilinoById, type EstatusOperativo, type Nave } from '@/data'
 import { usePreferences } from '@/context/PreferencesContext'
 import { useDataStore } from '@/context/DataStoreContext'
+import { useAuth } from '@/context/AuthContext'
 import { formatMoneda, formatSuperficie } from '@/lib/format'
 import { diasParaVencer, mesesRestantes } from '@/lib/dates'
 
@@ -15,7 +16,8 @@ const PAGE_SIZE = 8
 const TODOS_ESTATUS = 'Todos' as const
 
 export function DirectorioNavesTable() {
-  const { moneda, unidad, parqueSeleccionado, perfilSimulado } = usePreferences()
+  const { moneda, unidad, parqueSeleccionado } = usePreferences()
+  const { perfilActivo } = useAuth()
   const { naves, contratoPorNaveId } = useDataStore()
   const [busqueda, setBusqueda] = useState('')
   const [estatusFiltro, setEstatusFiltro] = useState<EstatusOperativo | typeof TODOS_ESTATUS>(TODOS_ESTATUS)
@@ -25,7 +27,7 @@ export function DirectorioNavesTable() {
   const filas = useMemo(() => {
     const q = busqueda.trim().toLowerCase()
     return naves
-      .filter((n) => perfilSimulado.region === 'todas' || parqueById(n.parqueId)?.region === perfilSimulado.region)
+      .filter((n) => perfilActivo.region === 'todas' || parqueById(n.parqueId)?.region === perfilActivo.region)
       .filter((n) => parqueSeleccionado === 'todos' || n.parqueId === parqueSeleccionado)
       .filter((n) => estatusFiltro === TODOS_ESTATUS || n.estatusOperativo === estatusFiltro)
       .filter((n) => {
@@ -38,7 +40,7 @@ export function DirectorioNavesTable() {
           inquilino?.nombreComercial.toLowerCase().includes(q)
         )
       })
-  }, [naves, busqueda, estatusFiltro, parqueSeleccionado, perfilSimulado])
+  }, [naves, busqueda, estatusFiltro, parqueSeleccionado, perfilActivo])
 
   const totalPaginas = Math.max(1, Math.ceil(filas.length / PAGE_SIZE))
   const paginaSegura = Math.min(pagina, totalPaginas - 1)
@@ -60,7 +62,7 @@ export function DirectorioNavesTable() {
           <h3 className="text-sm font-semibold text-foreground">Directorio Operativo de Naves y Complejos</h3>
           <p className="text-xs text-muted-foreground">
             {filas.length} activos coinciden con los filtros aplicados
-            {perfilSimulado.region !== 'todas' && ` · restringido a la región ${perfilSimulado.region} (rol ${perfilSimulado.puesto})`}
+            {perfilActivo.region !== 'todas' && ` · restringido a la región ${perfilActivo.region} (rol ${perfilActivo.puesto})`}
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">

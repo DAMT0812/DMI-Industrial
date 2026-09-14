@@ -6,11 +6,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet'
 import { usePreferences } from '@/context/PreferencesContext'
 import { useDataStore } from '@/context/DataStoreContext'
+import { useAuth } from '@/context/AuthContext'
 import { parques, parqueById } from '@/data'
 import { cn } from '@/lib/utils'
 
 // Nave representativa por región — así el atajo de "Expediente Digital 360°"
-// siempre abre algo dentro del alcance del perfil simulado activo.
+// siempre abre algo dentro del alcance del perfil activo.
 const NAVE_REPRESENTATIVA_POR_REGION: Record<string, string> = {
   Bajío: 'NAVE-04',
   Norte: 'NAVE-06',
@@ -19,14 +20,15 @@ const NAVE_REPRESENTATIVA_POR_REGION: Record<string, string> = {
 }
 
 function SidebarBody({ collapsed, onNavigate }: { collapsed: boolean; onNavigate?: () => void }) {
-  const { parqueSeleccionado, setParqueSeleccionado, perfilSimulado } = usePreferences()
+  const { parqueSeleccionado, setParqueSeleccionado } = usePreferences()
   const { ocupacionGlobalPct: ocupacion } = useDataStore()
+  const { perfilActivo } = useAuth()
 
   const navItems = [
     { to: '/', label: 'Portafolio de Naves', icon: Building2, end: true },
     { to: '/mantenimiento', label: 'Mantenimiento & SLAs', icon: Wrench, end: false },
     {
-      to: `/naves/${NAVE_REPRESENTATIVA_POR_REGION[perfilSimulado.region]}`,
+      to: `/naves/${NAVE_REPRESENTATIVA_POR_REGION[perfilActivo.region]}`,
       label: 'Expediente Digital 360°',
       icon: FolderOpenDot,
       end: false,

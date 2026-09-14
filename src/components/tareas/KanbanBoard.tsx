@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button'
 import { parqueById, type ColumnaKanban, type TareaOperativa } from '@/data'
 import { usePreferences } from '@/context/PreferencesContext'
 import { useDataStore } from '@/context/DataStoreContext'
+import { useAuth } from '@/context/AuthContext'
 import { formatMoneda } from '@/lib/format'
 import { cn } from '@/lib/utils'
 import { EditarTareaDialog } from '@/components/tareas/EditarTareaDialog'
@@ -75,7 +76,7 @@ function TareaCard({ tarea, onEditar }: { tarea: TareaOperativa; onEditar: (tare
 }
 
 export function KanbanBoard() {
-  const { perfilSimulado } = usePreferences()
+  const { perfilActivo } = useAuth()
   const { tareasOperativas, naveById } = useDataStore()
   const [tareaParaEditar, setTareaParaEditar] = useState<TareaOperativa | null>(null)
 
@@ -84,7 +85,7 @@ export function KanbanBoard() {
       {COLUMNAS.map((col) => {
         const tareas = tareasOperativas
           .filter((t) => t.columna === col)
-          .filter((t) => perfilSimulado.region === 'todas' || parqueById(naveById(t.naveId)!.parqueId)?.region === perfilSimulado.region)
+          .filter((t) => perfilActivo.region === 'todas' || parqueById(naveById(t.naveId)!.parqueId)?.region === perfilActivo.region)
         return (
           <div key={col} className="flex flex-col gap-3 rounded-lg border border-border bg-surface-secondary/40 p-3">
             <div className="flex items-center justify-between">

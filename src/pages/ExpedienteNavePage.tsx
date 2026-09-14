@@ -12,13 +12,15 @@ import { MultimediaTab } from '@/components/expediente/MultimediaTab'
 import { AltaInmuebleDialog } from '@/components/portafolio/AltaInmuebleDialog'
 import { usePreferences } from '@/context/PreferencesContext'
 import { useDataStore } from '@/context/DataStoreContext'
+import { useAuth } from '@/context/AuthContext'
 import { parqueById, inquilinoPorNaveId, inquilinoById } from '@/data'
 import { formatMoneda, formatSuperficie } from '@/lib/format'
 import { mesesRestantes } from '@/lib/dates'
 
 export function ExpedienteNavePage() {
   const { naveId } = useParams()
-  const { moneda, unidad, perfilSimulado } = usePreferences()
+  const { moneda, unidad } = usePreferences()
+  const { perfilActivo } = useAuth()
   const { naveById, contratoPorNaveId } = useDataStore()
   const [editarAbierto, setEditarAbierto] = useState(false)
   const nave = naveId ? naveById(naveId) : undefined
@@ -30,8 +32,8 @@ export function ExpedienteNavePage() {
   const inquilino = inquilinoById(inquilinoPorNaveId[nave.id] ?? '')
   const mesesRestantesContrato = contrato ? mesesRestantes(contrato.fechaVencimiento) : null
 
-  const fueraDeRegion = perfilSimulado.region !== 'todas' && parque.region !== perfilSimulado.region
-  const esContabilidad = perfilSimulado.rol === 'Contabilidad'
+  const fueraDeRegion = perfilActivo.region !== 'todas' && parque.region !== perfilActivo.region
+  const esContabilidad = perfilActivo.rol === 'Contabilidad'
 
   if (fueraDeRegion) {
     return (
@@ -40,7 +42,7 @@ export function ExpedienteNavePage() {
         <h2 className="text-headline-sm text-foreground">Sin acceso a esta nave</h2>
         <p className="max-w-md text-sm text-muted-foreground">
           {parque.nombre} pertenece a la región <strong>{parque.region}</strong>, fuera del alcance de{' '}
-          <strong>{perfilSimulado.nombre}</strong> ({perfilSimulado.puesto}). Cambia de perfil simulado en la barra superior o vuelve al portafolio.
+          <strong>{perfilActivo.nombre}</strong> ({perfilActivo.puesto}). Contacta al Administrador del Sistema si crees que esto es un error.
         </p>
         <Button size="sm" variant="outline" render={<Link to="/" />} nativeButton={false}>
           Volver al Portafolio
