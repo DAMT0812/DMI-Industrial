@@ -1,6 +1,7 @@
-import { createContext, useContext, useEffect, useMemo, useState, type Dispatch, type ReactNode, type SetStateAction } from 'react'
+import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
 import type {
   ContratoArrendamiento,
+  CotizacionCapex,
   DocumentoPermiso,
   EstadoRenovacion,
   EvidenciaOrden,
@@ -9,15 +10,15 @@ import type {
   PausaOrden,
   ProyectoCapex,
   RenovacionContrato,
+  SentidoVoto,
   TareaOperativa,
+  VotoCapex,
 } from '@/data/types'
 import { supabase } from '@/lib/supabaseClient'
 import { registrarBitacora } from '@/lib/bitacora'
 import { useAuth } from '@/context/AuthContext'
 import { documentosPorNave as documentosPorNaveBase } from '@/data/documentos'
-import { tareasOperativas as tareasOperativasBase } from '@/data/tareasOperativas'
 import {
-  proyectosCapex as proyectosCapexBase,
   proyectoCapexPorNave as proyectoCapexPorNaveBase,
   capexAutorizadoTotal as capexAutorizadoTotalBase,
   capexDisponiblePct as capexDisponiblePctBase,
@@ -26,7 +27,6 @@ import { calcularAlertas, requerimientosCriticos as requerimientosCriticosBase, 
 import { calcularTareasVivas } from '@/data/tareasVivas'
 import * as portafolioKpis from '@/data/portafolioKpis'
 import * as mantenimientoKpis from '@/data/mantenimientoKpis'
-import { aplicarOverrides, type OverrideMap } from '@/data/overrides'
 
 // naves, documentos y contratos/renovaciones (Fases 6f/6d/6g) persisten de verdad en
 // Supabase. El resto de entidades editables sigue como arreglo base (src/data/*.ts, sin
@@ -70,9 +70,23 @@ interface DataStoreContextValue {
 
   proyectosCapex: ProyectoCapex[]
   proyectoCapexPorNave: (naveId: string) => ProyectoCapex[]
+  agregarProyectoCapex: (proyecto: Pick<ProyectoCapex, 'naveId' | 'titulo' | 'justificacionTecnica' | 'inversionEstimada' | 'roiProyectadoPct' | 'paybackAnios'>) => void
   editarCapex: (id: string, cambios: Partial<ProyectoCapex>) => void
   capexAutorizadoTotal: number
   capexDisponiblePct: number
+
+  capexCotizaciones: CotizacionCapex[]
+  cotizacionesPorProyecto: (proyectoId: string) => CotizacionCapex[]
+  registrarCotizacionCapex: (proyectoId: string, cotizacion: { proveedor: string; monto: number; garantiaMeses: number }) => void
+  enviarCapexAComite: (proyectoId: string) => void
+
+  capexVotos: VotoCapex[]
+  votosPorProyecto: (proyectoId: string) => VotoCapex[]
+  miVotoPorProyecto: (proyectoId: string) => VotoCapex | undefined
+  votarCapex: (proyectoId: string, sentido: SentidoVoto, comentario?: string) => void
+  resolverComiteCapex: (proyectoId: string, decision: 'aprobar' | 'rechazar', motivo?: string) => void
+
+  perfilesPorId: Record<string, string>
 
   alertas: ReturnType<typeof calcularAlertas>
   tareasVivas: ReturnType<typeof calcularTareasVivas>
@@ -345,6 +359,118 @@ function evidenciaDeFila(fila: Record<string, unknown>): EvidenciaOrden {
   }
 }
 
+// tareas_operativas (Fase 6i) también persiste de verdad — es un simple tablero Kanban,
+// sin máquina de estados propia (a diferencia de ordenes_trabajo), así que un solo
+// editarTarea genérico basta, igual que editarNave/editarContrato.
+function tareaDeFila(fila: Record<string, unknown>): TareaOperativa {
+  return {
+    id: fila.id as string,
+    categoria: fila.categoria as TareaOperativa['categoria'],
+    titulo: fila.titulo as string,
+    naveId: fila.nave_id as string,
+    responsable: fila.responsable as string,
+    columna: fila.columna as TareaOperativa['columna'],
+    costoEstimado: fila.costo_estimado === null || fila.costo_estimado === undefined ? null : Number(fila.costo_estimado),
+    avancePct: fila.avance_pct === null || fila.avance_pct === undefined ? null : Number(fila.avance_pct),
+    cotizacionesRecibidas: (fila.cotizaciones_recibidas as string | null) ?? null,
+    slaRestanteHoras: fila.sla_restante_horas === null || fila.sla_restante_horas === undefined ? null : Number(fila.sla_restante_horas),
+  }
+}
+
+function describirCambiosTarea(cambios: Partial<TareaOperativa>): string {
+  const partes: string[] = []
+  if (cambios.columna !== undefined) partes.push(`columna → ${cambios.columna}`)
+  if (cambios.avancePct !== undefined) partes.push(`avance → ${cambios.avancePct}%`)
+  if (cambios.responsable !== undefined) partes.push('responsable actualizado')
+  if (cambios.costoEstimado !== undefined) partes.push('costo estimado actualizado')
+  if (cambios.cotizacionesRecibidas !== undefined) partes.push('cotizaciones recibidas actualizadas')
+  return partes.length ? `Tarea actualizada: ${partes.join(', ')}` : 'Tarea actualizada'
+}
+
+function tareaAFila(cambios: Partial<TareaOperativa>): Record<string, unknown> {
+  const fila: Record<string, unknown> = {}
+  if (cambios.categoria !== undefined) fila.categoria = cambios.categoria
+  if (cambios.titulo !== undefined) fila.titulo = cambios.titulo
+  if (cambios.naveId !== undefined) fila.nave_id = cambios.naveId
+  if (cambios.responsable !== undefined) fila.responsable = cambios.responsable
+  if (cambios.columna !== undefined) fila.columna = cambios.columna
+  if (cambios.costoEstimado !== undefined) fila.costo_estimado = cambios.costoEstimado
+  if (cambios.avancePct !== undefined) fila.avance_pct = cambios.avancePct
+  if (cambios.cotizacionesRecibidas !== undefined) fila.cotizaciones_recibidas = cambios.cotizacionesRecibidas
+  if (cambios.slaRestanteHoras !== undefined) fila.sla_restante_horas = cambios.slaRestanteHoras
+  return fila
+}
+
+// proyectos_capex (Fase 6i): comité de CapEx con cotizaciones y votos persistidos en sus
+// propias tablas (capex_cotizaciones, capex_votos), activadas aquí igual que
+// ordenes_pausas/ordenes_evidencia en Fase 6h — ya existían en el esquema sin usarse.
+function capexDeFila(fila: Record<string, unknown>): ProyectoCapex {
+  return {
+    id: fila.id as string,
+    codigo: fila.codigo as string,
+    naveId: fila.nave_id as string,
+    titulo: fila.titulo as string,
+    justificacionTecnica: fila.justificacion_tecnica as string,
+    inversionEstimada: Number(fila.inversion_estimada),
+    roiProyectadoPct: fila.roi_proyectado_pct === null || fila.roi_proyectado_pct === undefined ? 0 : Number(fila.roi_proyectado_pct),
+    paybackAnios: fila.payback_anios === null || fila.payback_anios === undefined ? 0 : Number(fila.payback_anios),
+    estatusComite: fila.estatus_comite as ProyectoCapex['estatusComite'],
+    motivoRechazo: (fila.motivo_rechazo as string | null) ?? null,
+    proveedorSeleccionado: (fila.proveedor_seleccionado as string | null) ?? null,
+    avanceFisicoPct: Number(fila.avance_fisico_pct),
+    avanceFinancieroPct: Number(fila.avance_financiero_pct),
+  }
+}
+
+function describirCambiosCapex(cambios: Partial<ProyectoCapex>): string {
+  const partes: string[] = []
+  if (cambios.estatusComite !== undefined) partes.push(`estatus del comité → ${cambios.estatusComite}`)
+  if (cambios.proveedorSeleccionado !== undefined) partes.push(`proveedor seleccionado → ${cambios.proveedorSeleccionado}`)
+  if (cambios.avanceFisicoPct !== undefined || cambios.avanceFinancieroPct !== undefined) partes.push('avance de ejecución actualizado')
+  if (cambios.motivoRechazo !== undefined && cambios.motivoRechazo !== null) partes.push(`motivo de rechazo: ${cambios.motivoRechazo}`)
+  if (cambios.titulo !== undefined || cambios.justificacionTecnica !== undefined || cambios.inversionEstimada !== undefined) {
+    partes.push('ficha del proyecto actualizada')
+  }
+  return partes.length ? `Proyecto CapEx actualizado: ${partes.join(', ')}` : 'Proyecto CapEx actualizado'
+}
+
+function capexAFila(cambios: Partial<ProyectoCapex>): Record<string, unknown> {
+  const fila: Record<string, unknown> = {}
+  if (cambios.titulo !== undefined) fila.titulo = cambios.titulo
+  if (cambios.justificacionTecnica !== undefined) fila.justificacion_tecnica = cambios.justificacionTecnica
+  if (cambios.inversionEstimada !== undefined) fila.inversion_estimada = cambios.inversionEstimada
+  if (cambios.roiProyectadoPct !== undefined) fila.roi_proyectado_pct = cambios.roiProyectadoPct
+  if (cambios.paybackAnios !== undefined) fila.payback_anios = cambios.paybackAnios
+  if (cambios.estatusComite !== undefined) fila.estatus_comite = cambios.estatusComite
+  if (cambios.motivoRechazo !== undefined) fila.motivo_rechazo = cambios.motivoRechazo
+  if (cambios.proveedorSeleccionado !== undefined) fila.proveedor_seleccionado = cambios.proveedorSeleccionado
+  if (cambios.avanceFisicoPct !== undefined) fila.avance_fisico_pct = cambios.avanceFisicoPct
+  if (cambios.avanceFinancieroPct !== undefined) fila.avance_financiero_pct = cambios.avanceFinancieroPct
+  return fila
+}
+
+function cotizacionCapexDeFila(fila: Record<string, unknown>): CotizacionCapex {
+  return {
+    id: fila.id as string,
+    proyectoId: fila.proyecto_capex_id as string,
+    proveedor: fila.proveedor as string,
+    monto: Number(fila.monto),
+    garantiaMeses: Number(fila.garantia_meses),
+    recibida: Boolean(fila.recibida),
+  }
+}
+
+function votoCapexDeFila(fila: Record<string, unknown>): VotoCapex {
+  return {
+    id: fila.id as string,
+    proyectoId: fila.proyecto_id as string,
+    usuarioId: (fila.usuario_id as string | null) ?? null,
+    sentido: fila.sentido as SentidoVoto,
+    comentario: (fila.comentario as string | null) ?? null,
+    fecha: fila.fecha as string,
+  }
+}
+
 function documentoDeFila(fila: Record<string, unknown>): DocumentoPermiso {
   return {
     id: fila.id as string,
@@ -382,11 +508,6 @@ function documentoAFila(cambios: Partial<DocumentoPermiso>): Record<string, unkn
   return fila
 }
 
-function crearEditor<T>(setOverrides: Dispatch<SetStateAction<OverrideMap<T>>>) {
-  return (id: string, cambios: Partial<T>) =>
-    setOverrides((prev) => ({ ...prev, [id]: { ...prev[id], ...cambios } }))
-}
-
 export function DataStoreProvider({ children }: { children: ReactNode }) {
   const { session } = useAuth()
   const [naves, setNaves] = useState<Nave[]>([])
@@ -397,8 +518,11 @@ export function DataStoreProvider({ children }: { children: ReactNode }) {
   const [ordenesTrabajo, setOrdenesTrabajo] = useState<OrdenTrabajo[]>([])
   const [ordenesPausas, setOrdenesPausas] = useState<PausaOrden[]>([])
   const [ordenesEvidencia, setOrdenesEvidencia] = useState<EvidenciaOrden[]>([])
-  const [tareasOverrides, setTareasOverrides] = useState<OverrideMap<TareaOperativa>>({})
-  const [capexOverrides, setCapexOverrides] = useState<OverrideMap<ProyectoCapex>>({})
+  const [tareasOperativas, setTareasOperativas] = useState<TareaOperativa[]>([])
+  const [proyectosCapex, setProyectosCapex] = useState<ProyectoCapex[]>([])
+  const [capexCotizaciones, setCapexCotizaciones] = useState<CotizacionCapex[]>([])
+  const [capexVotos, setCapexVotos] = useState<VotoCapex[]>([])
+  const [perfilesPorId, setPerfilesPorId] = useState<Record<string, string>>({})
 
   // RLS exige sesión autenticada para leer naves/documentos: se espera a que exista
   // sesión antes de pedirlas, y se vuelven a pedir en cada cambio de sesión (login,
@@ -415,6 +539,11 @@ export function DataStoreProvider({ children }: { children: ReactNode }) {
       setOrdenesTrabajo([])
       setOrdenesPausas([])
       setOrdenesEvidencia([])
+      setTareasOperativas([])
+      setProyectosCapex([])
+      setCapexCotizaciones([])
+      setCapexVotos([])
+      setPerfilesPorId({})
       return
     }
     supabase
@@ -460,10 +589,37 @@ export function DataStoreProvider({ children }: { children: ReactNode }) {
       .then(({ data }) => {
         if (data) setOrdenesEvidencia(data.map(evidenciaDeFila))
       })
+    supabase
+      .from('tareas_operativas')
+      .select('*')
+      .then(({ data }) => {
+        if (data) setTareasOperativas(data.map(tareaDeFila))
+      })
+    supabase
+      .from('proyectos_capex')
+      .select('*')
+      .then(({ data }) => {
+        if (data) setProyectosCapex(data.map(capexDeFila))
+      })
+    supabase
+      .from('capex_cotizaciones')
+      .select('*')
+      .then(({ data }) => {
+        if (data) setCapexCotizaciones(data.map(cotizacionCapexDeFila))
+      })
+    supabase
+      .from('capex_votos')
+      .select('*')
+      .then(({ data }) => {
+        if (data) setCapexVotos(data.map(votoCapexDeFila))
+      })
+    supabase
+      .from('profiles')
+      .select('id,nombre')
+      .then(({ data }) => {
+        if (data) setPerfilesPorId(Object.fromEntries((data as { id: string; nombre: string }[]).map((p) => [p.id, p.nombre])))
+      })
   }, [userId])
-
-  const tareasOperativas = useMemo(() => aplicarOverrides(tareasOperativasBase, tareasOverrides), [tareasOverrides])
-  const proyectosCapex = useMemo(() => aplicarOverrides(proyectosCapexBase, capexOverrides), [capexOverrides])
 
   const alertas = useMemo(() => calcularAlertas(documentos, contratos, ordenesTrabajo), [documentos, contratos, ordenesTrabajo])
   const tareasVivas = useMemo(() => calcularTareasVivas(ordenesTrabajo), [ordenesTrabajo])
@@ -702,13 +858,174 @@ export function DataStoreProvider({ children }: { children: ReactNode }) {
       },
 
       tareasOperativas,
-      editarTarea: crearEditor(setTareasOverrides),
+      editarTarea: (id, cambios) => {
+        setTareasOperativas((prev) => prev.map((t) => (t.id === id ? { ...t, ...cambios } : t)))
+        supabase
+          .from('tareas_operativas')
+          .update({ ...tareaAFila(cambios), updated_at: new Date().toISOString() })
+          .eq('id', id)
+          .then(({ error }) => {
+            if (error) {
+              console.error('Error al guardar tarea en Supabase:', error.message)
+              return
+            }
+            registrarBitacora('tareas_operativas', id, 'edicion', describirCambiosTarea(cambios))
+          })
+      },
 
       proyectosCapex,
       proyectoCapexPorNave: (naveId) => proyectoCapexPorNaveBase(naveId, proyectosCapex),
-      editarCapex: crearEditor(setCapexOverrides),
+      agregarProyectoCapex: (proyecto) => {
+        const id = `CPX-${Date.now()}`
+        const codigo = `CPX-${new Date().getFullYear()}-${String(Date.now()).slice(-4)}`
+        const nuevo: ProyectoCapex = {
+          id,
+          codigo,
+          naveId: proyecto.naveId,
+          titulo: proyecto.titulo,
+          justificacionTecnica: proyecto.justificacionTecnica,
+          inversionEstimada: proyecto.inversionEstimada,
+          roiProyectadoPct: proyecto.roiProyectadoPct,
+          paybackAnios: proyecto.paybackAnios,
+          estatusComite: 'Pendiente 3ra Cotización',
+          motivoRechazo: null,
+          proveedorSeleccionado: null,
+          avanceFisicoPct: 0,
+          avanceFinancieroPct: 0,
+        }
+        setProyectosCapex((prev) => [...prev, nuevo])
+        supabase
+          .from('proyectos_capex')
+          .insert({
+            id,
+            codigo,
+            nave_id: nuevo.naveId,
+            titulo: nuevo.titulo,
+            justificacion_tecnica: nuevo.justificacionTecnica,
+            inversion_estimada: nuevo.inversionEstimada,
+            roi_proyectado_pct: nuevo.roiProyectadoPct,
+            payback_anios: nuevo.paybackAnios,
+            estatus_comite: nuevo.estatusComite,
+          })
+          .then(({ error }) => {
+            if (error) {
+              console.error('Error al guardar proyecto CapEx en Supabase:', error.message)
+              return
+            }
+            registrarBitacora('proyectos_capex', id, 'alta', `Proyecto CapEx creado: ${codigo} — ${nuevo.titulo}`)
+          })
+      },
+      editarCapex: (id, cambios) => {
+        setProyectosCapex((prev) => prev.map((p) => (p.id === id ? { ...p, ...cambios } : p)))
+        supabase
+          .from('proyectos_capex')
+          .update({ ...capexAFila(cambios), updated_at: new Date().toISOString() })
+          .eq('id', id)
+          .then(({ error }) => {
+            if (error) {
+              console.error('Error al guardar proyecto CapEx en Supabase:', error.message)
+              return
+            }
+            registrarBitacora('proyectos_capex', id, 'edicion', describirCambiosCapex(cambios))
+          })
+      },
       capexAutorizadoTotal,
       capexDisponiblePct: capexDisponiblePctBase(proyectosCapex),
+
+      capexCotizaciones,
+      cotizacionesPorProyecto: (proyectoId) => capexCotizaciones.filter((c) => c.proyectoId === proyectoId),
+      registrarCotizacionCapex: (proyectoId, cotizacion) => {
+        supabase
+          .from('capex_cotizaciones')
+          .insert({
+            proyecto_capex_id: proyectoId,
+            proveedor: cotizacion.proveedor,
+            monto: cotizacion.monto,
+            garantia_meses: cotizacion.garantiaMeses,
+            recibida: true,
+          })
+          .select()
+          .then(({ data, error }) => {
+            if (error) {
+              console.error('Error al registrar cotización CapEx en Supabase:', error.message)
+              return
+            }
+            if (data) setCapexCotizaciones((prev) => [...prev, ...data.map(cotizacionCapexDeFila)])
+            registrarBitacora('proyectos_capex', proyectoId, 'cotizacion_registrada', `Cotización recibida de ${cotizacion.proveedor}`)
+          })
+      },
+      enviarCapexAComite: (proyectoId) => {
+        setProyectosCapex((prev) => prev.map((p) => (p.id === proyectoId ? { ...p, estatusComite: 'En Revisión Comité' } : p)))
+        supabase
+          .from('proyectos_capex')
+          .update({ estatus_comite: 'En Revisión Comité', updated_at: new Date().toISOString() })
+          .eq('id', proyectoId)
+          .then(({ error }) => {
+            if (error) {
+              console.error('Error al enviar proyecto CapEx a comité en Supabase:', error.message)
+              return
+            }
+            registrarBitacora('proyectos_capex', proyectoId, 'enviado_a_comite', 'Proyecto enviado a revisión del comité')
+          })
+      },
+
+      capexVotos,
+      votosPorProyecto: (proyectoId) => capexVotos.filter((v) => v.proyectoId === proyectoId),
+      miVotoPorProyecto: (proyectoId) => capexVotos.find((v) => v.proyectoId === proyectoId && v.usuarioId === userId),
+      votarCapex: (proyectoId, sentido, comentario) => {
+        const votoExistente = capexVotos.find((v) => v.proyectoId === proyectoId && v.usuarioId === userId)
+        const fecha = new Date().toISOString()
+        if (votoExistente) {
+          setCapexVotos((prev) => prev.map((v) => (v.id === votoExistente.id ? { ...v, sentido, comentario: comentario ?? null, fecha } : v)))
+          supabase
+            .from('capex_votos')
+            .update({ sentido, comentario: comentario ?? null, fecha })
+            .eq('id', votoExistente.id)
+            .then(({ error }) => {
+              if (error) {
+                console.error('Error al actualizar voto CapEx en Supabase:', error.message)
+                return
+              }
+              registrarBitacora('proyectos_capex', proyectoId, 'voto_actualizado', `Voto del comité actualizado: ${sentido}`)
+            })
+          return
+        }
+        supabase
+          .from('capex_votos')
+          .insert({ proyecto_id: proyectoId, usuario_id: userId ?? null, sentido, comentario: comentario ?? null })
+          .select()
+          .then(({ data, error }) => {
+            if (error) {
+              console.error('Error al registrar voto CapEx en Supabase:', error.message)
+              return
+            }
+            if (data) setCapexVotos((prev) => [...prev, ...data.map(votoCapexDeFila)])
+            registrarBitacora('proyectos_capex', proyectoId, 'voto_registrado', `Voto del comité registrado: ${sentido}`)
+          })
+      },
+      resolverComiteCapex: (proyectoId, decision, motivo) => {
+        const cambios: Partial<ProyectoCapex> =
+          decision === 'aprobar' ? { estatusComite: 'Aprobado por Dirección', motivoRechazo: null } : { estatusComite: 'Rechazado', motivoRechazo: motivo ?? null }
+        setProyectosCapex((prev) => prev.map((p) => (p.id === proyectoId ? { ...p, ...cambios } : p)))
+        supabase
+          .from('proyectos_capex')
+          .update({ ...capexAFila(cambios), updated_at: new Date().toISOString() })
+          .eq('id', proyectoId)
+          .then(({ error }) => {
+            if (error) {
+              console.error('Error al resolver comité CapEx en Supabase:', error.message)
+              return
+            }
+            registrarBitacora(
+              'proyectos_capex',
+              proyectoId,
+              decision === 'aprobar' ? 'aprobado_por_direccion' : 'rechazado',
+              decision === 'aprobar' ? 'Proyecto aprobado por Dirección' : `Proyecto rechazado por el comité: ${motivo}`,
+            )
+          })
+      },
+
+      perfilesPorId,
 
       alertas,
       tareasVivas,
@@ -744,6 +1061,9 @@ export function DataStoreProvider({ children }: { children: ReactNode }) {
     ordenesEvidencia,
     tareasOperativas,
     proyectosCapex,
+    capexCotizaciones,
+    capexVotos,
+    perfilesPorId,
     alertas,
     tareasVivas,
     userId,

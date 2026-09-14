@@ -29,6 +29,11 @@ export const puedeValidarCierreOrden = (rol: Rol) => rol === 'Facility Manager'
 export const puedeEditarTarea = (rol: Rol) => rol === 'Property Manager' || rol === 'Facility Manager'
 export const puedeEditarCapex = (rol: Rol) => rol === 'Property Manager' || rol === 'Facility Manager'
 
+// Comité de CapEx: Dirección vota y resuelve (aprueba/rechaza) proyectos en revisión;
+// PM/FM preparan la ficha y las cotizaciones pero no deciden el resultado del comité.
+export const puedeVotarCapex = (rol: Rol) => rol === 'Dirección'
+export const puedeResolverCapex = (rol: Rol) => rol === 'Dirección'
+
 export const esAdministrador = (rol: Rol) => rol === 'Administrador del Sistema'
 
 // Bitácora de auditoría: solo quienes supervisan el sistema en conjunto, no quienes

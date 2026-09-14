@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { AlertTriangle, Clock, PlusCircle, Wallet } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -5,16 +6,21 @@ import { KpiCard } from '@/components/shared/KpiCard'
 import { AlertaCard } from '@/components/shared/AlertaCard'
 import { KanbanBoard } from '@/components/tareas/KanbanBoard'
 import { CapexTable } from '@/components/tareas/CapexTable'
+import { NuevoCapexDialog } from '@/components/tareas/NuevoCapexDialog'
 import { CotizacionCard } from '@/components/tareas/CotizacionCard'
 import { TareasVivasFlow } from '@/components/tareas/TareasVivasFlow'
 import { usePreferences } from '@/context/PreferencesContext'
 import { useDataStore } from '@/context/DataStoreContext'
+import { useAuth } from '@/context/AuthContext'
+import { puedeEditarCapex } from '@/lib/permissions'
 import { solicitudesCotizacion, CAPEX_BOLSA_ANUAL_USD } from '@/data'
 import { formatMoneda, formatPct } from '@/lib/format'
 
 export function TareasCapexPage() {
   const { moneda } = usePreferences()
+  const { perfilActivo } = useAuth()
   const { alertas, proyectosCapex, tareasVivas, capexAutorizadoTotal, capexDisponiblePct } = useDataStore()
+  const [nuevoCapexAbierto, setNuevoCapexAbierto] = useState(false)
 
   const vencimientosCriticos = alertas.filter((a) => a.urgencia === 'Crítico Inminente' && a.tipo !== 'SLA de Ticket').length
   const capexEnRevision = proyectosCapex.filter((p) => p.estatusComite === 'En Revisión Comité').length
@@ -42,11 +48,15 @@ export function TareasCapexPage() {
             </span>
           </div>
         </div>
-        <Button className="gap-1.5">
-          <PlusCircle className="h-4 w-4" />
-          Nueva Solicitud de CapEx
-        </Button>
+        {puedeEditarCapex(perfilActivo.rol) && (
+          <Button className="gap-1.5" onClick={() => setNuevoCapexAbierto(true)}>
+            <PlusCircle className="h-4 w-4" />
+            Nueva Solicitud de CapEx
+          </Button>
+        )}
       </div>
+
+      <NuevoCapexDialog open={nuevoCapexAbierto} onOpenChange={setNuevoCapexAbierto} />
 
       <Tabs defaultValue="tareas-capex">
         <TabsList>

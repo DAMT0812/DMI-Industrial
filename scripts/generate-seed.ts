@@ -19,6 +19,7 @@ import {
   ordenesTrabajo,
   tareasOperativas,
   proyectosCapex,
+  capexCotizacionesSeed,
   solicitudesCotizacion,
   propietariosLegales,
   estudiosTecnicos,
@@ -262,20 +263,20 @@ lines.push(
     'proyectos_capex',
     [
       'id', 'codigo', 'nave_id', 'titulo', 'justificacion_tecnica', 'inversion_estimada', 'roi_proyectado_pct',
-      'payback_anios', 'estatus_comite', 'proveedor_seleccionado', 'avance_fisico_pct', 'avance_financiero_pct',
+      'payback_anios', 'estatus_comite', 'motivo_rechazo', 'proveedor_seleccionado', 'avance_fisico_pct', 'avance_financiero_pct',
     ],
     proyectosCapex.map((p) => [
       sqlStr(p.id), sqlStr(p.codigo), sqlStr(p.naveId), sqlStr(p.titulo), sqlStr(p.justificacionTecnica),
       sqlNum(p.inversionEstimada), sqlNum(p.roiProyectadoPct), sqlNum(p.paybackAnios), sqlStr(p.estatusComite),
-      sqlStr(p.proveedorSeleccionado), sqlNum(p.avanceFisicoPct), sqlNum(p.avanceFinancieroPct),
+      sqlStr(p.motivoRechazo), sqlStr(p.proveedorSeleccionado), sqlNum(p.avanceFisicoPct), sqlNum(p.avanceFinancieroPct),
     ])
   )
 )
 
 // capex_cotizaciones (hijo de proyectos_capex, sin id propio en el modelo original -> se genera uuid)
 {
-  const rows = proyectosCapex.flatMap((p) =>
-    p.cotizaciones.map((c) => [sqlStr(p.id), sqlStr(c.proveedor), sqlNum(c.monto), sqlNum(c.garantiaMeses), sqlBool(c.recibida)])
+  const rows = capexCotizacionesSeed.flatMap((p) =>
+    p.cotizaciones.map((c) => [sqlStr(p.proyectoId), sqlStr(c.proveedor), sqlNum(c.monto), sqlNum(c.garantiaMeses), sqlBool(c.recibida)])
   )
   if (rows.length > 0) {
     const values = rows.map((r) => `  (${r.join(', ')})`).join(',\n')

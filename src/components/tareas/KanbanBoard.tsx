@@ -86,9 +86,16 @@ export function KanbanBoard() {
   return (
     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
       {COLUMNAS.map((col) => {
+        // tareasOperativas y naves se cargan con fetches independientes: en un refresh en
+        // frío pueden resolver en cualquier orden, así que no se asume que la nave de la
+        // tarea ya esté disponible en este render.
         const tareas = tareasOperativas
           .filter((t) => t.columna === col)
-          .filter((t) => perfilActivo.region === 'todas' || parqueById(naveById(t.naveId)!.parqueId)?.region === perfilActivo.region)
+          .filter((t) => {
+            if (perfilActivo.region === 'todas') return true
+            const nave = naveById(t.naveId)
+            return nave ? parqueById(nave.parqueId)?.region === perfilActivo.region : false
+          })
         return (
           <div key={col} className="flex flex-col gap-3 rounded-lg border border-border bg-surface-secondary/40 p-3">
             <div className="flex items-center justify-between">

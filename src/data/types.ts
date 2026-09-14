@@ -285,13 +285,6 @@ export type EstatusComiteCapex =
   | 'Concluido'
   | 'Rechazado'
 
-export interface Cotizacion {
-  proveedor: string
-  monto: number
-  garantiaMeses: number
-  recibida: boolean
-}
-
 export interface ProyectoCapex {
   id: string
   codigo: string
@@ -302,10 +295,35 @@ export interface ProyectoCapex {
   roiProyectadoPct: number
   paybackAnios: number
   estatusComite: EstatusComiteCapex
-  cotizaciones: Cotizacion[]
+  motivoRechazo: string | null
   proveedorSeleccionado: string | null
   avanceFisicoPct: number
   avanceFinancieroPct: number
+}
+
+// Cotizaciones recibidas por proyecto — tabla propia (capex_cotizaciones) en vez de
+// arreglo embebido, para que Property Manager / Facility Manager las vayan registrando
+// conforme llegan realmente, igual que ordenes_pausas/ordenes_evidencia en Mantenimiento.
+export interface CotizacionCapex {
+  id: string
+  proyectoId: string
+  proveedor: string
+  monto: number
+  garantiaMeses: number
+  recibida: boolean
+}
+
+// Voto del comité (Dirección) sobre un proyecto en 'En Revisión Comité' — un registro por
+// usuario y proyecto; se puede corregir antes de que Dirección resuelva el proyecto.
+export type SentidoVoto = 'A favor' | 'En contra' | 'Abstención'
+
+export interface VotoCapex {
+  id: string
+  proyectoId: string
+  usuarioId: string | null
+  sentido: SentidoVoto
+  comentario: string | null
+  fecha: string
 }
 
 export type CategoriaTarea =

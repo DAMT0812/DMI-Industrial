@@ -422,13 +422,13 @@ insert into tareas_operativas (id, categoria, titulo, nave_id, responsable, colu
   ('TSK-16', 'Regulatorio Legal', 'Renovación de Póliza Multirriesgo Industrial vencida', 'NAVE-05', 'Lic. Andrés Villalpando — Coordinador Legal & Cumplimiento', 'Completado & Auditado', 210000, 100, null, null)
 on conflict (id) do nothing;
 
-insert into proyectos_capex (id, codigo, nave_id, titulo, justificacion_tecnica, inversion_estimada, roi_proyectado_pct, payback_anios, estatus_comite, proveedor_seleccionado, avance_fisico_pct, avance_financiero_pct) values
-  ('CPX-01', 'CPX-2026-014', 'NAVE-07', 'Modernización eléctrica integral — Subestación y tableros de media tensión', 'Subestación con más de 12 años en operación, sin margen de crecimiento de carga y con hallazgos térmicos recurrentes en la última NOM-001-SEDE.', 3450000, 18, 4.2, 'En Ejecución', 'Voltium Ingeniería Eléctrica Industrial', 62, 55),
-  ('CPX-02', 'CPX-2026-021', 'NAVE-13', 'Reposición de cubierta y sistema de impermeabilización — Nave 02 SLP', 'Filtraciones recurrentes documentadas en 3 bitácoras de mantenimiento correctivo durante la última temporada de lluvias; riesgo de daño a inventario del inquilino.', 1980000, 12, 5.1, 'En Revisión Comité', null, 0, 0),
-  ('CPX-03', 'CPX-2026-009', 'NAVE-01', 'Ampliación de patio de maniobras y 4 andenes adicionales', 'Solicitud del inquilino ante crecimiento de volumen operativo; incrementa renta contractual vía adenda de ampliación de GLA.', 2750000, 22, 3.6, 'Aprobado por Dirección', 'Grupo Constructor Meridiano', 8, 15),
-  ('CPX-04', 'CPX-2026-027', 'NAVE-19', 'Sustitución de sistema HVAC en área administrativa', 'Equipos originales de 2017 fuera de vida útil recomendada por fabricante; eficiencia de enfriamiento por debajo del 82%.', 640000, 14, 3.9, 'Pendiente 3ra Cotización', null, 0, 0),
-  ('CPX-05', 'CPX-2026-003', 'NAVE-06', 'Certificación LEED Gold — retrofit de iluminación LED y agua', 'Compromiso ESG corporativo 2026; el inquilino condiciona renovación anticipada a certificación ambiental de la nave.', 1120000, 16, 4.8, 'Concluido', 'Voltium Ingeniería Eléctrica Industrial', 100, 100),
-  ('CPX-06', 'CPX-2026-032', 'NAVE-11', 'Renivelación de pisos industriales en zona de racking automatizado', 'Desviación de planicidad detectada por auditoría de seguridad del inquilino, riesgo operativo para montacargas trilaterales.', 890000, 11, 5.4, 'En Revisión Comité', null, 0, 0)
+insert into proyectos_capex (id, codigo, nave_id, titulo, justificacion_tecnica, inversion_estimada, roi_proyectado_pct, payback_anios, estatus_comite, motivo_rechazo, proveedor_seleccionado, avance_fisico_pct, avance_financiero_pct) values
+  ('CPX-01', 'CPX-2026-014', 'NAVE-07', 'Modernización eléctrica integral — Subestación y tableros de media tensión', 'Subestación con más de 12 años en operación, sin margen de crecimiento de carga y con hallazgos térmicos recurrentes en la última NOM-001-SEDE.', 3450000, 18, 4.2, 'En Ejecución', null, 'Voltium Ingeniería Eléctrica Industrial', 62, 55),
+  ('CPX-02', 'CPX-2026-021', 'NAVE-13', 'Reposición de cubierta y sistema de impermeabilización — Nave 02 SLP', 'Filtraciones recurrentes documentadas en 3 bitácoras de mantenimiento correctivo durante la última temporada de lluvias; riesgo de daño a inventario del inquilino.', 1980000, 12, 5.1, 'En Revisión Comité', null, null, 0, 0),
+  ('CPX-03', 'CPX-2026-009', 'NAVE-01', 'Ampliación de patio de maniobras y 4 andenes adicionales', 'Solicitud del inquilino ante crecimiento de volumen operativo; incrementa renta contractual vía adenda de ampliación de GLA.', 2750000, 22, 3.6, 'Aprobado por Dirección', null, 'Grupo Constructor Meridiano', 8, 15),
+  ('CPX-04', 'CPX-2026-027', 'NAVE-19', 'Sustitución de sistema HVAC en área administrativa', 'Equipos originales de 2017 fuera de vida útil recomendada por fabricante; eficiencia de enfriamiento por debajo del 82%.', 640000, 14, 3.9, 'Pendiente 3ra Cotización', null, null, 0, 0),
+  ('CPX-05', 'CPX-2026-003', 'NAVE-06', 'Certificación LEED Gold — retrofit de iluminación LED y agua', 'Compromiso ESG corporativo 2026; el inquilino condiciona renovación anticipada a certificación ambiental de la nave.', 1120000, 16, 4.8, 'Concluido', null, 'Voltium Ingeniería Eléctrica Industrial', 100, 100),
+  ('CPX-06', 'CPX-2026-032', 'NAVE-11', 'Renivelación de pisos industriales en zona de racking automatizado', 'Desviación de planicidad detectada por auditoría de seguridad del inquilino, riesgo operativo para montacargas trilaterales.', 890000, 11, 5.4, 'En Revisión Comité', null, null, 0, 0)
 on conflict (id) do nothing;
 
 insert into capex_cotizaciones (proyecto_capex_id, proveedor, monto, garantia_meses, recibida) values
@@ -440,7 +440,6 @@ insert into capex_cotizaciones (proyecto_capex_id, proveedor, monto, garantia_me
   ('CPX-03', 'Grupo Constructor Meridiano', 2750000, 24, true),
   ('CPX-03', 'Estructuras Metálicas Torreón', 2890000, 18, true),
   ('CPX-04', 'Climatec Soluciones HVAC', 640000, 36, true),
-  ('CPX-04', '—', 0, 0, false),
   ('CPX-05', 'Voltium Ingeniería Eléctrica Industrial', 1120000, 24, true),
   ('CPX-06', 'Pisos Industriales Monolith', 890000, 48, true),
   ('CPX-06', 'Grupo Constructor Meridiano', 960000, 24, true),

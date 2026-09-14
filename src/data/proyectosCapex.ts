@@ -1,9 +1,16 @@
-import type { ProyectoCapex } from './types'
+import type { CotizacionCapex, ProyectoCapex } from './types'
 
 // Bolsa de CapEx autorizada para el ejercicio fiscal en curso (USD).
 export const CAPEX_BOLSA_ANUAL_USD = 12_500_000
 
-export const proyectosCapex: ProyectoCapex[] = [
+// Las cotizaciones viven en su propia tabla (capex_cotizaciones, Fase 6i) — aquí se
+// mantienen junto a cada proyecto solo para autoría del seed; generate-seed.ts las lee
+// de `capexCotizacionesSeed`, no del `ProyectoCapex` real que consume la app.
+interface ProyectoSeed extends ProyectoCapex {
+  cotizaciones: Omit<CotizacionCapex, 'id' | 'proyectoId'>[]
+}
+
+const proyectosSeed: ProyectoSeed[] = [
   {
     id: 'CPX-01',
     codigo: 'CPX-2026-014',
@@ -14,6 +21,7 @@ export const proyectosCapex: ProyectoCapex[] = [
     roiProyectadoPct: 18,
     paybackAnios: 4.2,
     estatusComite: 'En Ejecución',
+    motivoRechazo: null,
     cotizaciones: [
       { proveedor: 'Voltium Ingeniería Eléctrica Industrial', monto: 3_450_000, garantiaMeses: 24, recibida: true },
       { proveedor: 'Grupo Constructor Meridiano', monto: 3_780_000, garantiaMeses: 18, recibida: true },
@@ -33,6 +41,7 @@ export const proyectosCapex: ProyectoCapex[] = [
     roiProyectadoPct: 12,
     paybackAnios: 5.1,
     estatusComite: 'En Revisión Comité',
+    motivoRechazo: null,
     cotizaciones: [
       { proveedor: 'Cubiertas del Bajío, S.A. de C.V.', monto: 1_980_000, garantiaMeses: 60, recibida: true },
       { proveedor: 'Grupo Constructor Meridiano', monto: 2_150_000, garantiaMeses: 36, recibida: true },
@@ -51,6 +60,7 @@ export const proyectosCapex: ProyectoCapex[] = [
     roiProyectadoPct: 22,
     paybackAnios: 3.6,
     estatusComite: 'Aprobado por Dirección',
+    motivoRechazo: null,
     cotizaciones: [
       { proveedor: 'Grupo Constructor Meridiano', monto: 2_750_000, garantiaMeses: 24, recibida: true },
       { proveedor: 'Estructuras Metálicas Torreón', monto: 2_890_000, garantiaMeses: 18, recibida: true },
@@ -69,10 +79,8 @@ export const proyectosCapex: ProyectoCapex[] = [
     roiProyectadoPct: 14,
     paybackAnios: 3.9,
     estatusComite: 'Pendiente 3ra Cotización',
-    cotizaciones: [
-      { proveedor: 'Climatec Soluciones HVAC', monto: 640_000, garantiaMeses: 36, recibida: true },
-      { proveedor: '—', monto: 0, garantiaMeses: 0, recibida: false },
-    ],
+    motivoRechazo: null,
+    cotizaciones: [{ proveedor: 'Climatec Soluciones HVAC', monto: 640_000, garantiaMeses: 36, recibida: true }],
     proveedorSeleccionado: null,
     avanceFisicoPct: 0,
     avanceFinancieroPct: 0,
@@ -87,9 +95,8 @@ export const proyectosCapex: ProyectoCapex[] = [
     roiProyectadoPct: 16,
     paybackAnios: 4.8,
     estatusComite: 'Concluido',
-    cotizaciones: [
-      { proveedor: 'Voltium Ingeniería Eléctrica Industrial', monto: 1_120_000, garantiaMeses: 24, recibida: true },
-    ],
+    motivoRechazo: null,
+    cotizaciones: [{ proveedor: 'Voltium Ingeniería Eléctrica Industrial', monto: 1_120_000, garantiaMeses: 24, recibida: true }],
     proveedorSeleccionado: 'Voltium Ingeniería Eléctrica Industrial',
     avanceFisicoPct: 100,
     avanceFinancieroPct: 100,
@@ -104,6 +111,7 @@ export const proyectosCapex: ProyectoCapex[] = [
     roiProyectadoPct: 11,
     paybackAnios: 5.4,
     estatusComite: 'En Revisión Comité',
+    motivoRechazo: null,
     cotizaciones: [
       { proveedor: 'Pisos Industriales Monolith', monto: 890_000, garantiaMeses: 48, recibida: true },
       { proveedor: 'Grupo Constructor Meridiano', monto: 960_000, garantiaMeses: 24, recibida: true },
@@ -114,6 +122,14 @@ export const proyectosCapex: ProyectoCapex[] = [
     avanceFinancieroPct: 0,
   },
 ]
+
+export const proyectosCapex: ProyectoCapex[] = proyectosSeed.map(({ cotizaciones: _cotizaciones, ...proyecto }) => proyecto)
+
+// Usado solo por generate-seed.ts para poblar capex_cotizaciones (tabla real, Fase 6i).
+export const capexCotizacionesSeed: { proyectoId: string; cotizaciones: Omit<CotizacionCapex, 'id' | 'proyectoId'>[] }[] = proyectosSeed.map((p) => ({
+  proyectoId: p.id,
+  cotizaciones: p.cotizaciones,
+}))
 
 export const proyectoCapexPorNave = (naveId: string, proyectosInput: ProyectoCapex[] = proyectosCapex) =>
   proyectosInput.filter((p) => p.naveId === naveId)
