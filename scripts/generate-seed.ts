@@ -14,6 +14,7 @@ import {
   naves,
   documentos,
   contratos,
+  contratoIdsEnRevision,
   sistemasCriticos,
   ordenesTrabajo,
   tareasOperativas,
@@ -208,7 +209,7 @@ lines.push(
   )
 )
 
-const contratosEnRevision = contratos.filter((c) => c.estatus === 'En Revisión')
+const contratosEnRevision = contratos.filter((c) => contratoIdsEnRevision.includes(c.id))
 if (contratosEnRevision.length > 0) {
   lines.push(
     insertStatement(

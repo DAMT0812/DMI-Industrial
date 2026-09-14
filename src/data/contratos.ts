@@ -12,7 +12,11 @@ interface Deal {
   opcionesRenovacion: string
   avalista: string
   clausulasEspeciales: string[]
-  estatus: ContratoArrendamiento['estatus']
+  // 'En Revisión' aquí es una señal de la maqueta ("esta nave tiene una renegociación de
+  // renovación en curso"), no un estatus real de ContratoArrendamiento — ese proceso vive
+  // en RenovacionContrato/tabla renovaciones. Se traduce a 'Vigente' al construir
+  // `contratos`; contratoIdsEnRevision exporta la señal original para generate-seed.ts.
+  estatus: ContratoArrendamiento['estatus'] | 'En Revisión'
 }
 
 // Vigencias escalonadas a propósito para poblar las alertas T-12/T-9/T-6/T-3/T-1
@@ -67,9 +71,16 @@ export const contratos: ContratoArrendamiento[] = deals.map((d, idx) => {
     tipoContrato: d.tipoContrato,
     avalista: d.avalista,
     clausulasEspeciales: d.clausulasEspeciales,
-    estatus: d.estatus,
+    estatus: d.estatus === 'En Revisión' ? 'Vigente' : d.estatus,
   }
 })
+
+// IDs de contrato cuya nave tenía la señal 'En Revisión' en la maqueta — usado por
+// generate-seed.ts para poblar la tabla renovaciones con una renovación abierta.
+export const contratoIdsEnRevision: string[] = deals
+  .map((d, idx) => ({ id: `CTR-${String(idx + 1).padStart(2, '0')}`, estatus: d.estatus }))
+  .filter((c) => c.estatus === 'En Revisión')
+  .map((c) => c.id)
 
 export const contratoPorNaveId = (naveId: string, contratosInput: ContratoArrendamiento[] = contratos) =>
   contratosInput.find((c) => c.naveId === naveId)
