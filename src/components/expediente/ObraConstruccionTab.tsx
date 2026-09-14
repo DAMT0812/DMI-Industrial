@@ -209,6 +209,9 @@ export function ObraConstruccionTab({ nave }: { nave: Nave }) {
           estatus={permisoActivo.estatusJuridico}
           archivoActual={archivos[permisoActivo.id] ?? null}
           onArchivoCambiado={(file) => setArchivos((prev) => ({ ...prev, [permisoActivo.id]: file }))}
+          documentoId={permisoActivo.id}
+          archivoPath={permisoActivo.archivoPath}
+          onArchivoSubido={(path) => editarDocumento(permisoActivo.id, { archivoPath: path })}
           onGuardarCambios={
             puedeEditar
               ? (cambios) =>

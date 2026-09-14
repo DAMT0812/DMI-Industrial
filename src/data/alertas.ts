@@ -52,15 +52,15 @@ function alertasDePredial(documentosInput: typeof documentos): AlertaVencimiento
   return documentosInput
     .filter((d) => d.tipo === 'Predial' && d.fechaVencimiento)
     .map((d) => ({ d, dias: diasParaVencer(d.fechaVencimiento)! }))
-    .filter(({ dias, d }) => dias <= 60 || d.estatusJuridico === 'En mora / fuera de plazo')
+    .filter(({ dias, d }) => dias <= 60 || d.estatusJuridico === 'En Mora')
     .sort((a, b) => a.dias - b.dias)
     .map(({ d, dias }) => ({
       id: nextId(),
       tipo: 'Tesorería Municipal',
       naveId: d.naveId,
-      descripcion: `Predial ${d.estatusJuridico === 'En mora / fuera de plazo' ? 'en mora' : 'ciclo enero–febrero'} · Folio ${d.numeroFolio} — ${nombreNave(d.naveId)}`,
+      descripcion: `Predial ${d.estatusJuridico === 'En Mora' ? 'en mora' : 'ciclo enero–febrero'} · Folio ${d.numeroFolio} — ${nombreNave(d.naveId)}`,
       diasParaVencer: dias,
-      urgencia: d.estatusJuridico === 'En mora / fuera de plazo' ? 'Crítico Inminente' : urgenciaPorDias(dias, 30, 60),
+      urgencia: d.estatusJuridico === 'En Mora' ? 'Crítico Inminente' : urgenciaPorDias(dias, 30, 60),
       montoOSuperficie: null,
       responsable: 'C.P. Renata Solís — Coordinadora de Cobranza CAM',
       accion: 'Liquidar en Tesorería',

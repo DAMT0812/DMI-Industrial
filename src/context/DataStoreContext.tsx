@@ -1,7 +1,8 @@
-import { createContext, useContext, useMemo, useState, type Dispatch, type ReactNode, type SetStateAction } from 'react'
+import { createContext, useContext, useEffect, useMemo, useState, type Dispatch, type ReactNode, type SetStateAction } from 'react'
 import type { ContratoArrendamiento, DocumentoPermiso, Nave, OrdenTrabajo, ProyectoCapex, TareaOperativa } from '@/data/types'
+import { supabase } from '@/lib/supabaseClient'
 import { naves as navesBase, naveById as naveByIdBase } from '@/data/naves'
-import { documentos as documentosBase, documentosPorNave as documentosPorNaveBase } from '@/data/documentos'
+import { documentosPorNave as documentosPorNaveBase } from '@/data/documentos'
 import { contratos as contratosBase, contratoPorNaveId as contratoPorNaveIdBase } from '@/data/contratos'
 import { ordenesTrabajo as ordenesTrabajoBase, ordenesPorNave as ordenesPorNaveBase } from '@/data/ordenesTrabajo'
 import { tareasOperativas as tareasOperativasBase } from '@/data/tareasOperativas'
@@ -76,6 +77,36 @@ interface DataStoreContextValue {
 
 const DataStoreContext = createContext<DataStoreContextValue | null>(null)
 
+// documentos ya vive en Supabase de verdad (Fase 6d) — el resto de entidades sigue
+// como maqueta en memoria (overrides de sesión) hasta que les toque su propia fase
+// de migración. Este mapeo traduce entre las columnas snake_case de la tabla
+// "documentos" y el tipo DocumentoPermiso (camelCase) que ya consume toda la UI.
+function documentoDeFila(fila: Record<string, unknown>): DocumentoPermiso {
+  return {
+    id: fila.id as string,
+    naveId: fila.nave_id as string,
+    tipo: fila.tipo as DocumentoPermiso['tipo'],
+    dependenciaEmisora: fila.dependencia_emisora as string,
+    numeroFolio: fila.numero_folio as string,
+    fechaEmision: fila.fecha_emision as string,
+    fechaVencimiento: fila.fecha_vencimiento as string | null,
+    estatusJuridico: fila.estatus as DocumentoPermiso['estatusJuridico'],
+    archivoUrl: (fila.archivo_url as string | null) ?? '',
+    archivoPath: fila.archivo_path as string | null,
+  }
+}
+
+function documentoAFila(cambios: Partial<DocumentoPermiso>): Record<string, unknown> {
+  const fila: Record<string, unknown> = {}
+  if (cambios.dependenciaEmisora !== undefined) fila.dependencia_emisora = cambios.dependenciaEmisora
+  if (cambios.numeroFolio !== undefined) fila.numero_folio = cambios.numeroFolio
+  if (cambios.fechaEmision !== undefined) fila.fecha_emision = cambios.fechaEmision
+  if (cambios.fechaVencimiento !== undefined) fila.fecha_vencimiento = cambios.fechaVencimiento
+  if (cambios.estatusJuridico !== undefined) fila.estatus = cambios.estatusJuridico
+  if (cambios.archivoPath !== undefined) fila.archivo_path = cambios.archivoPath
+  return fila
+}
+
 function crearEditor<T>(setOverrides: Dispatch<SetStateAction<OverrideMap<T>>>) {
   return (id: string, cambios: Partial<T>) =>
     setOverrides((prev) => ({ ...prev, [id]: { ...prev[id], ...cambios } }))
@@ -84,7 +115,7 @@ function crearEditor<T>(setOverrides: Dispatch<SetStateAction<OverrideMap<T>>>) 
 export function DataStoreProvider({ children }: { children: ReactNode }) {
   const [navesNuevas, setNavesNuevas] = useState<Nave[]>([])
   const [navesOverrides, setNavesOverrides] = useState<OverrideMap<Nave>>({})
-  const [documentosOverrides, setDocumentosOverrides] = useState<OverrideMap<DocumentoPermiso>>({})
+  const [documentos, setDocumentos] = useState<DocumentoPermiso[]>([])
   const [contratosOverrides, setContratosOverrides] = useState<OverrideMap<ContratoArrendamiento>>({})
   const [ordenesOverrides, setOrdenesOverrides] = useState<OverrideMap<OrdenTrabajo>>({})
   const [tareasOverrides, setTareasOverrides] = useState<OverrideMap<TareaOperativa>>({})
@@ -94,7 +125,16 @@ export function DataStoreProvider({ children }: { children: ReactNode }) {
     () => aplicarOverrides([...navesBase, ...navesNuevas], navesOverrides),
     [navesNuevas, navesOverrides],
   )
-  const documentos = useMemo(() => aplicarOverrides(documentosBase, documentosOverrides), [documentosOverrides])
+
+  useEffect(() => {
+    supabase
+      .from('documentos')
+      .select('*')
+      .then(({ data }) => {
+        if (data) setDocumentos(data.map(documentoDeFila))
+      })
+  }, [])
+
   const contratos = useMemo(() => aplicarOverrides(contratosBase, contratosOverrides), [contratosOverrides])
   const ordenesTrabajo = useMemo(() => aplicarOverrides(ordenesTrabajoBase, ordenesOverrides), [ordenesOverrides])
   const tareasOperativas = useMemo(() => aplicarOverrides(tareasOperativasBase, tareasOverrides), [tareasOverrides])
@@ -113,7 +153,19 @@ export function DataStoreProvider({ children }: { children: ReactNode }) {
 
       documentos,
       documentosPorNave: (naveId) => documentosPorNaveBase(naveId, documentos),
-      editarDocumento: crearEditor(setDocumentosOverrides),
+      editarDocumento: (id, cambios) => {
+        setDocumentos((prev) => prev.map((d) => (d.id === id ? { ...d, ...cambios } : d)))
+        // El query builder de Supabase es "thenable": solo dispara la petición real
+        // cuando se le llama .then()/await — un `void` sobre la cadena sin eso nunca
+        // manda la petición.
+        supabase
+          .from('documentos')
+          .update(documentoAFila(cambios))
+          .eq('id', id)
+          .then(({ error }) => {
+            if (error) console.error('Error al guardar documento en Supabase:', error.message)
+          })
+      },
 
       contratos,
       contratoPorNaveId: (naveId) => contratoPorNaveIdBase(naveId, contratos),

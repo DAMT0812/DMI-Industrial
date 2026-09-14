@@ -19,11 +19,8 @@ const TONO_POR_ESTATUS: Record<string, Tono> = {
   Vigente: 'success',
   'Terminación Programada': 'warning',
   // Cumplimiento documental
-  'Pendiente de envío / por vencer': 'warning',
-  'En revisión / pendiente de aprobación': 'info',
-  'Aprobado / al día': 'success',
-  'Rechazado / requiere corrección': 'danger',
-  'En mora / fuera de plazo': 'danger',
+  'Aprobado/Vigente': 'success',
+  'Aprobado por Excepción': 'warning',
   // Tickets / prioridad
   Crítica: 'danger',
   Alta: 'danger',

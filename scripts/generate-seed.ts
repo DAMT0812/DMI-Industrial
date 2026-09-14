@@ -59,14 +59,8 @@ function insertStatement(table: string, columns: string[], rows: string[][]): st
   return `insert into ${table} (${columns.join(', ')}) values\n${values}\non conflict (id) do nothing;\n`
 }
 
-// Mapeo de valores de la maqueta (mock) al modelo del MVP productivo (Fase 6a v2).
-const ESTATUS_DOCUMENTAL_A_ESTATUS: Record<string, string> = {
-  'Pendiente de envío / por vencer': 'Pendiente',
-  'En revisión / pendiente de aprobación': 'En Revisión',
-  'Aprobado / al día': 'Aprobado/Vigente',
-  'Rechazado / requiere corrección': 'Rechazado',
-  'En mora / fuera de plazo': 'En Mora',
-}
+// documentos.ts ya emite el vocabulario real de estatus (Fase 6d) — no hace falta
+// mapeo aquí, se usa d.estatusJuridico directamente.
 const TIPOS_DOCUMENTO_SIN_VIGENCIA = new Set(['Licencia de Construcción', 'Manifestación de Impacto Ambiental', 'Memoria de Cálculo Estructural'])
 const ESTATUS_ORDEN_A_ESTATUS: Record<string, string> = {
   Abierta: 'Abierta',
@@ -154,7 +148,7 @@ lines.push(
 function expedienteCompleto(naveId: string): boolean {
   const docsDeLaNave = documentos.filter((d) => d.naveId === naveId)
   if (docsDeLaNave.length < 10) return false
-  return docsDeLaNave.every((d) => d.estatusJuridico === 'Aprobado / al día')
+  return docsDeLaNave.every((d) => d.estatusJuridico === 'Aprobado/Vigente')
 }
 
 lines.push(
@@ -188,7 +182,7 @@ lines.push(
     ['id', 'nave_id', 'tipo', 'requiere_vigencia', 'dependencia_emisora', 'numero_folio', 'fecha_emision', 'fecha_vencimiento', 'estatus', 'archivo_url'],
     documentos.map((d) => [
       sqlStr(d.id), sqlStr(d.naveId), sqlStr(d.tipo), sqlBool(!TIPOS_DOCUMENTO_SIN_VIGENCIA.has(d.tipo)), sqlStr(d.dependenciaEmisora), sqlStr(d.numeroFolio),
-      sqlStr(d.fechaEmision), sqlStr(d.fechaVencimiento), sqlStr(ESTATUS_DOCUMENTAL_A_ESTATUS[d.estatusJuridico] ?? 'Pendiente'), sqlStr(d.archivoUrl),
+      sqlStr(d.fechaEmision), sqlStr(d.fechaVencimiento), sqlStr(d.estatusJuridico), sqlStr(d.archivoUrl),
     ])
   )
 )

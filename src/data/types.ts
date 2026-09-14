@@ -13,13 +13,10 @@ export type EstatusOperativo =
 
 export type EstatusGeneral = 'Pendiente' | 'En Revisión' | 'Aprobado' | 'Rechazado' | 'En Mora'
 
-// Catálogo de cumplimiento documental — etiquetas combinadas según el prompt de referencia.
-export type EstatusDocumental =
-  | 'Pendiente de envío / por vencer'
-  | 'En revisión / pendiente de aprobación'
-  | 'Aprobado / al día'
-  | 'Rechazado / requiere corrección'
-  | 'En mora / fuera de plazo'
+// Ciclo de vida real de un documento del expediente — sección 6.2 del prompt de
+// referencia. El paso a "En Mora" es automático al cumplirse la fecha de vencimiento
+// sobre un documento Aprobado/Vigente, nunca una acción manual.
+export type EstatusDocumental = 'Pendiente' | 'En Revisión' | 'Aprobado/Vigente' | 'Rechazado' | 'Aprobado por Excepción' | 'En Mora'
 
 export type Industria =
   | 'Manufactura Avanzada'
@@ -132,6 +129,10 @@ export interface DocumentoPermiso {
   fechaVencimiento: string | null
   estatusJuridico: EstatusDocumental
   archivoUrl: string
+  // Ruta real dentro del bucket privado de Supabase Storage ("documentos"); null si
+  // nadie ha subido el archivo todavía. La URL de descarga/vista se genera al vuelo
+  // (firmada, vigencia de 5 minutos) — nunca se guarda una URL pública permanente.
+  archivoPath: string | null
 }
 
 export type RegimenPropiedad = 'Propiedad Privada' | 'Copropiedad' | 'Fideicomiso Inmobiliario'

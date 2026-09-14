@@ -66,6 +66,9 @@ export function PredialCfeServiciosTab({ nave }: { nave: Nave }) {
           estatus={docActivo.estatusJuridico}
           archivoActual={archivos[docActivo.id] ?? null}
           onArchivoCambiado={(file) => setArchivos((prev) => ({ ...prev, [docActivo.id]: file }))}
+          documentoId={docActivo.id}
+          archivoPath={docActivo.archivoPath}
+          onArchivoSubido={(path) => editarDocumento(docActivo.id, { archivoPath: path })}
           onGuardarCambios={
             puedeEditar
               ? (cambios) =>
