@@ -13,6 +13,7 @@ import { AltaInmuebleDialog } from '@/components/portafolio/AltaInmuebleDialog'
 import { usePreferences } from '@/context/PreferencesContext'
 import { useDataStore } from '@/context/DataStoreContext'
 import { useAuth } from '@/context/AuthContext'
+import { puedeEditarNave, puedeVerContrato } from '@/lib/permissions'
 import { parqueById, inquilinoPorNaveId, inquilinoById } from '@/data'
 import { formatMoneda, formatSuperficie } from '@/lib/format'
 import { mesesRestantes } from '@/lib/dates'
@@ -34,6 +35,7 @@ export function ExpedienteNavePage() {
 
   const fueraDeRegion = perfilActivo.region !== 'todas' && parque.region !== perfilActivo.region
   const esContabilidad = perfilActivo.rol === 'Contabilidad'
+  const sinAccesoContrato = esContabilidad || !puedeVerContrato(perfilActivo.rol)
 
   if (fueraDeRegion) {
     return (
@@ -76,10 +78,12 @@ export function ExpedienteNavePage() {
           </p>
         </div>
         <div className="flex shrink-0 flex-wrap gap-2">
-          <Button variant="outline" className="gap-1.5" onClick={() => setEditarAbierto(true)}>
-            <Pencil className="h-4 w-4" />
-            Editar Inmueble
-          </Button>
+          {puedeEditarNave(perfilActivo.rol) && (
+            <Button variant="outline" className="gap-1.5" onClick={() => setEditarAbierto(true)}>
+              <Pencil className="h-4 w-4" />
+              Editar Inmueble
+            </Button>
+          )}
           <Button variant="outline" className="gap-1.5">
             <Download className="h-4 w-4" />
             Descargar Dossier (ZIP)
@@ -161,7 +165,7 @@ export function ExpedienteNavePage() {
           {esContabilidad ? <AccesoRestringido /> : <ObraConstruccionTab nave={nave} />}
         </TabsContent>
         <TabsContent value="contrato" className="mt-5">
-          {esContabilidad ? <AccesoRestringido /> : <ContratoArrendatarioTab nave={nave} />}
+          {sinAccesoContrato ? <AccesoRestringido /> : <ContratoArrendatarioTab nave={nave} />}
         </TabsContent>
         <TabsContent value="equipos" className="mt-5">
           {esContabilidad ? <AccesoRestringido /> : <EquiposMantenimientoTab nave={nave} />}
@@ -183,9 +187,7 @@ function AccesoRestringido() {
   return (
     <div className="flex flex-col items-center gap-2 rounded-lg border border-dashed border-border bg-surface-secondary py-14 text-center">
       <Lock className="h-6 w-6 text-muted-foreground" />
-      <p className="text-sm text-muted-foreground">
-        Esta sección no está disponible para el rol Contabilidad. Cambia a Property Manager o Dirección para consultarla.
-      </p>
+      <p className="text-sm text-muted-foreground">Esta sección no está disponible para tu rol actual.</p>
     </div>
   )
 }

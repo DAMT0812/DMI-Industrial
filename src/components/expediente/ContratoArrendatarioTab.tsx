@@ -17,12 +17,15 @@ import {
 } from '@/data'
 import { usePreferences } from '@/context/PreferencesContext'
 import { useDataStore } from '@/context/DataStoreContext'
+import { useAuth } from '@/context/AuthContext'
+import { puedeEditarContrato, puedeResolverRenovacion } from '@/lib/permissions'
 import { formatMoneda } from '@/lib/format'
 import { formatFecha } from '@/lib/dates'
 import { Mail, Pencil, Phone, ShieldAlert, Users } from 'lucide-react'
 
 export function ContratoArrendatarioTab({ nave }: { nave: Nave }) {
   const { moneda } = usePreferences()
+  const { perfilActivo } = useAuth()
   const { contratoPorNaveId, editarContrato } = useDataStore()
   const contrato = contratoPorNaveId(nave.id)
   const inquilino = inquilinoById(inquilinoPorNaveId[nave.id] ?? '')
@@ -49,10 +52,12 @@ export function ContratoArrendatarioTab({ nave }: { nave: Nave }) {
             <Card>
               <CardHeader className="flex-row items-center justify-between">
                 <CardTitle className="text-sm font-semibold">Contrato de Arrendamiento</CardTitle>
-                <Button size="sm" variant="outline" className="h-7 gap-1 text-xs" onClick={() => setEditarAbierto(true)}>
-                  <Pencil className="h-3.5 w-3.5" />
-                  Editar Contrato
-                </Button>
+                {puedeEditarContrato(perfilActivo.rol) && (
+                  <Button size="sm" variant="outline" className="h-7 gap-1 text-xs" onClick={() => setEditarAbierto(true)}>
+                    <Pencil className="h-3.5 w-3.5" />
+                    Editar Contrato
+                  </Button>
+                )}
               </CardHeader>
               <CardContent className="flex flex-col gap-2.5 text-sm">
                 <Fila etiqueta="Arrendatario" valor={inquilino.razonSocial} />
@@ -70,7 +75,7 @@ export function ContratoArrendatarioTab({ nave }: { nave: Nave }) {
                   <span className="text-xs font-medium text-muted-foreground">Estatus</span>
                   <StatusBadge estatus={estatusMostrado!} />
                 </div>
-                {estatusMostrado === 'En Revisión' && (
+                {estatusMostrado === 'En Revisión' && puedeResolverRenovacion(perfilActivo.rol) && (
                   <div className="flex justify-end pt-1">
                     <Button size="sm" className="h-7 text-xs" onClick={() => setDialogoAbierto(true)}>
                       Resolver Renovación

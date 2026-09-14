@@ -8,10 +8,13 @@ import { EditarCapexDialog } from '@/components/tareas/EditarCapexDialog'
 import { parqueById, type ProyectoCapex } from '@/data'
 import { usePreferences } from '@/context/PreferencesContext'
 import { useDataStore } from '@/context/DataStoreContext'
+import { useAuth } from '@/context/AuthContext'
+import { puedeEditarCapex } from '@/lib/permissions'
 import { formatMoneda, formatSuperficie } from '@/lib/format'
 
 export function CapexTable() {
   const { moneda, unidad } = usePreferences()
+  const { perfilActivo } = useAuth()
   const { proyectosCapex, naveById } = useDataStore()
   const [seleccionado, setSeleccionado] = useState<ProyectoCapex | null>(null)
   const [proyectoParaEditar, setProyectoParaEditar] = useState<ProyectoCapex | null>(null)
@@ -58,9 +61,11 @@ export function CapexTable() {
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-1.5">
-                      <Button size="icon-sm" variant="outline" className="h-7 w-7" aria-label="Editar proyecto CapEx" onClick={() => setProyectoParaEditar(p)}>
-                        <Pencil className="h-3.5 w-3.5" />
-                      </Button>
+                      {puedeEditarCapex(perfilActivo.rol) && (
+                        <Button size="icon-sm" variant="outline" className="h-7 w-7" aria-label="Editar proyecto CapEx" onClick={() => setProyectoParaEditar(p)}>
+                          <Pencil className="h-3.5 w-3.5" />
+                        </Button>
+                      )}
                       <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => setSeleccionado(p)}>
                         Ver Ficha
                       </Button>

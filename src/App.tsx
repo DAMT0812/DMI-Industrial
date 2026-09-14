@@ -10,6 +10,7 @@ import { PortafolioPage } from '@/pages/PortafolioPage'
 import { MantenimientoPage } from '@/pages/MantenimientoPage'
 import { TareasCapexPage } from '@/pages/TareasCapexPage'
 import { ExpedienteNavePage } from '@/pages/ExpedienteNavePage'
+import { AdminUsuariosPage } from '@/pages/AdminUsuariosPage'
 
 function AuthGate({ children }: { children: ReactNode }) {
   const { session, profile, loading, signOut } = useAuth()
@@ -26,6 +27,16 @@ function AuthGate({ children }: { children: ReactNode }) {
         <p className="max-w-sm text-sm text-muted-foreground">
           Tu cuenta inició sesión pero no encontramos tu perfil interno. Contacta al Administrador del Sistema.
         </p>
+        <button type="button" onClick={() => void signOut()} className="text-xs font-medium text-primary hover:underline">
+          Cerrar sesión
+        </button>
+      </div>
+    )
+  }
+  if (!profile.activo) {
+    return (
+      <div className="flex min-h-screen flex-col items-center justify-center gap-3 px-4 text-center">
+        <p className="max-w-sm text-sm text-muted-foreground">Tu cuenta fue desactivada. Contacta al Administrador del Sistema.</p>
         <button type="button" onClick={() => void signOut()} className="text-xs font-medium text-primary hover:underline">
           Cerrar sesión
         </button>
@@ -49,6 +60,7 @@ function App() {
                     <Route path="mantenimiento" element={<MantenimientoPage />} />
                     <Route path="tareas-capex" element={<TareasCapexPage />} />
                     <Route path="naves/:naveId" element={<ExpedienteNavePage />} />
+                    <Route path="admin/usuarios" element={<AdminUsuariosPage />} />
                   </Route>
                 </Routes>
               </BrowserRouter>

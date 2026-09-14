@@ -11,6 +11,7 @@ import { EditarOrdenDialog } from '@/components/mantenimiento/EditarOrdenDialog'
 import { usePreferences } from '@/context/PreferencesContext'
 import { useDataStore } from '@/context/DataStoreContext'
 import { useAuth } from '@/context/AuthContext'
+import { puedeEditarOrden, puedeValidarCierreOrden } from '@/lib/permissions'
 import {
   matrizConfiabilidad,
   contratistas,
@@ -200,10 +201,12 @@ export function MantenimientoPage() {
                           </TableCell>
                           <TableCell className="text-right">
                             <div className="flex justify-end gap-1.5">
-                              <Button size="icon-sm" variant="outline" className="h-7 w-7" aria-label="Editar orden" onClick={() => setOtParaEditar(o)}>
-                                <Pencil className="h-3.5 w-3.5" />
-                              </Button>
-                              {estatus === 'Pendiente de Evidencia' && (
+                              {puedeEditarOrden(perfilActivo.rol) && (
+                                <Button size="icon-sm" variant="outline" className="h-7 w-7" aria-label="Editar orden" onClick={() => setOtParaEditar(o)}>
+                                  <Pencil className="h-3.5 w-3.5" />
+                                </Button>
+                              )}
+                              {estatus === 'Pendiente de Evidencia' && puedeValidarCierreOrden(perfilActivo.rol) && (
                                 <Button size="sm" variant="outline" className="h-7 gap-1 text-xs" onClick={() => setOtParaValidar(o)}>
                                   <ClipboardCheck className="h-3.5 w-3.5" />
                                   Validar Cierre

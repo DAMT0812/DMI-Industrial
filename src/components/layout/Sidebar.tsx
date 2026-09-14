@@ -1,12 +1,13 @@
 import { useState } from 'react'
 import { NavLink } from 'react-router-dom'
-import { Building2, ClipboardList, FolderOpenDot, Menu, PanelLeftClose, PanelLeftOpen, Wrench } from 'lucide-react'
+import { Building2, ClipboardList, FolderOpenDot, Menu, PanelLeftClose, PanelLeftOpen, ShieldCheck, Wrench } from 'lucide-react'
 import { Logo } from '@/components/shared/Logo'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet'
 import { usePreferences } from '@/context/PreferencesContext'
 import { useDataStore } from '@/context/DataStoreContext'
 import { useAuth } from '@/context/AuthContext'
+import { esAdministrador } from '@/lib/permissions'
 import { parques, parqueById } from '@/data'
 import { cn } from '@/lib/utils'
 
@@ -34,6 +35,9 @@ function SidebarBody({ collapsed, onNavigate }: { collapsed: boolean; onNavigate
       end: false,
     },
     { to: '/tareas-capex', label: 'Centro de Tareas & CapEx', icon: ClipboardList, end: false },
+    ...(esAdministrador(perfilActivo.rol)
+      ? [{ to: '/admin/usuarios', label: 'Administración', icon: ShieldCheck, end: false }]
+      : []),
   ]
 
   return (

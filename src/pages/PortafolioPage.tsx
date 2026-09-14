@@ -10,6 +10,8 @@ import { AltaInmuebleDialog } from '@/components/portafolio/AltaInmuebleDialog'
 import { PillToggle } from '@/components/shared/ToggleGroup'
 import { usePreferences } from '@/context/PreferencesContext'
 import { useDataStore } from '@/context/DataStoreContext'
+import { useAuth } from '@/context/AuthContext'
+import { puedeAltaNave } from '@/lib/permissions'
 import { parques, PRESUPUESTO_MENSUAL_USD, CAPEX_BOLSA_ANUAL_USD } from '@/data'
 import { formatMoneda, formatPct, formatSuperficie } from '@/lib/format'
 import { useState } from 'react'
@@ -18,6 +20,7 @@ const PERIODOS = ['T1 2026', 'T2 2026', 'T3 2026'] as const
 
 export function PortafolioPage() {
   const { moneda, unidad } = usePreferences()
+  const { perfilActivo } = useAuth()
   const [periodo, setPeriodo] = useState<(typeof PERIODOS)[number]>('T3 2026')
   const [altaAbierta, setAltaAbierta] = useState(false)
   const {
@@ -59,10 +62,12 @@ export function PortafolioPage() {
             <Download className="h-4 w-4" />
             Exportar Reporte CapEx/NOI
           </Button>
-          <Button className="gap-1.5" onClick={() => setAltaAbierta(true)}>
-            <PlusCircle className="h-4 w-4" />
-            Alta de Inmueble
-          </Button>
+          {puedeAltaNave(perfilActivo.rol) && (
+            <Button className="gap-1.5" onClick={() => setAltaAbierta(true)}>
+              <PlusCircle className="h-4 w-4" />
+              Alta de Inmueble
+            </Button>
+          )}
         </div>
       </div>
 

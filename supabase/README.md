@@ -6,11 +6,24 @@ críticos, bitácora inmutable, comité CapEx con votos, flujo de firmas por imp
 El control de permisos por rol/ámbito (RLS fino) y toda la lógica de flujos se agregan en
 fases posteriores (6b en adelante) sobre esta misma base.
 
-Pasos a ejecutar en el **SQL Editor** de tu proyecto de Supabase, en este orden exacto:
+Migraciones, en orden: `0001_schema.sql` → `0002_rls.sql` → `seed/seed.sql` → `0003_auth_trigger.sql` → `0004_admin_rls.sql` → `0005_fix_admin_rls_recursion.sql`.
 
-1. `migrations/0001_schema.sql` — crea todas las tablas y relaciones.
-2. `migrations/0002_rls.sql` — activa seguridad a nivel de fila (RLS).
-3. `seed/seed.sql` — carga los datos de ejemplo actuales (los mismos que hoy ves en la maqueta).
+## Opción A — línea de comandos (recomendado si ya tienes DATABASE_URL en `.env.local`)
+
+```bash
+DATABASE_URL="postgresql://..." npx tsx scripts/run-sql.ts supabase/migrations/0001_schema.sql
+```
+
+El connection string está en **Project Settings → Connect → Direct connection (o Session
+pooler si te conectas desde una red IPv4)**. Si la contraseña tiene caracteres especiales
+(`@`, `#`, etc.) hay que codificarlos en la URL (`@` → `%40`).
+
+## Opción B — SQL Editor de Supabase (copiar/pegar manual)
+
+Abre cada archivo y pégalo en **SQL Editor** de tu proyecto, uno a la vez, en el orden de
+arriba.
+
+---
 
 Para regenerar `seed/seed.sql` a partir de `src/data/` (por si cambian los datos de ejemplo):
 

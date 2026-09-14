@@ -6,6 +6,7 @@ import { parqueById, type ColumnaKanban, type TareaOperativa } from '@/data'
 import { usePreferences } from '@/context/PreferencesContext'
 import { useDataStore } from '@/context/DataStoreContext'
 import { useAuth } from '@/context/AuthContext'
+import { puedeEditarTarea } from '@/lib/permissions'
 import { formatMoneda } from '@/lib/format'
 import { cn } from '@/lib/utils'
 import { EditarTareaDialog } from '@/components/tareas/EditarTareaDialog'
@@ -31,7 +32,7 @@ function iniciales(nombre: string) {
     .join('')
 }
 
-function TareaCard({ tarea, onEditar }: { tarea: TareaOperativa; onEditar: (tarea: TareaOperativa) => void }) {
+function TareaCard({ tarea, onEditar, puedeEditar }: { tarea: TareaOperativa; onEditar: (tarea: TareaOperativa) => void; puedeEditar: boolean }) {
   const { moneda } = usePreferences()
   const { naveById } = useDataStore()
   const nave = naveById(tarea.naveId)
@@ -43,9 +44,11 @@ function TareaCard({ tarea, onEditar }: { tarea: TareaOperativa; onEditar: (tare
         <span className={cn('inline-flex rounded-sm px-1.5 py-0.5 text-[10px] font-semibold', CATEGORIA_TONO[tarea.categoria] ?? 'bg-muted text-muted-foreground')}>
           {tarea.categoria}
         </span>
-        <Button size="icon-sm" variant="ghost" className="h-5 w-5 shrink-0 text-muted-foreground" aria-label="Editar tarea" onClick={() => onEditar(tarea)}>
-          <Pencil className="h-3 w-3" />
-        </Button>
+        {puedeEditar && (
+          <Button size="icon-sm" variant="ghost" className="h-5 w-5 shrink-0 text-muted-foreground" aria-label="Editar tarea" onClick={() => onEditar(tarea)}>
+            <Pencil className="h-3 w-3" />
+          </Button>
+        )}
       </div>
       <p className="mt-2 text-sm leading-snug font-medium text-foreground">{tarea.titulo}</p>
       <p className="mt-1 text-xs text-muted-foreground">
@@ -94,7 +97,7 @@ export function KanbanBoard() {
             </div>
             <div className="flex flex-col gap-2.5">
               {tareas.map((t) => (
-                <TareaCard key={t.id} tarea={t} onEditar={setTareaParaEditar} />
+                <TareaCard key={t.id} tarea={t} onEditar={setTareaParaEditar} puedeEditar={puedeEditarTarea(perfilActivo.rol)} />
               ))}
             </div>
           </div>

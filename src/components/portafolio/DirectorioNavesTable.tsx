@@ -9,6 +9,7 @@ import { parqueById, inquilinoPorNaveId, inquilinoById, type EstatusOperativo, t
 import { usePreferences } from '@/context/PreferencesContext'
 import { useDataStore } from '@/context/DataStoreContext'
 import { useAuth } from '@/context/AuthContext'
+import { puedeEditarNave } from '@/lib/permissions'
 import { formatMoneda, formatSuperficie } from '@/lib/format'
 import { diasParaVencer, mesesRestantes } from '@/lib/dates'
 
@@ -157,9 +158,11 @@ export function DirectorioNavesTable() {
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-1.5">
-                      <Button size="icon-sm" variant="outline" className="h-7 w-7" aria-label="Editar inmueble" onClick={() => setNaveEnEdicion(nave)}>
-                        <Pencil className="h-3.5 w-3.5" />
-                      </Button>
+                      {puedeEditarNave(perfilActivo.rol) && (
+                        <Button size="icon-sm" variant="outline" className="h-7 w-7" aria-label="Editar inmueble" onClick={() => setNaveEnEdicion(nave)}>
+                          <Pencil className="h-3.5 w-3.5" />
+                        </Button>
+                      )}
                       <Button size="sm" variant="outline" className="h-7 text-xs" nativeButton={false} render={<Link to={`/naves/${nave.id}`} />}>
                         Ver 360°
                       </Button>

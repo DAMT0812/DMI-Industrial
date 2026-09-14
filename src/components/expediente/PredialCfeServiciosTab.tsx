@@ -4,6 +4,8 @@ import { StatusBadge } from '@/components/shared/StatusBadge'
 import { DocumentoDialog } from '@/components/shared/DocumentoDialog'
 import { type TipoDocumento, type Nave } from '@/data'
 import { useDataStore } from '@/context/DataStoreContext'
+import { useAuth } from '@/context/AuthContext'
+import { puedeEditarDocumentoPredialCfe } from '@/lib/permissions'
 import { formatFecha, diasParaVencer } from '@/lib/dates'
 import { FileCheck2 } from 'lucide-react'
 
@@ -11,6 +13,8 @@ const TIPOS_SERVICIOS: TipoDocumento[] = ['Predial', 'Contrato CFE', 'Contrato d
 
 export function PredialCfeServiciosTab({ nave }: { nave: Nave }) {
   const { documentosPorNave, editarDocumento } = useDataStore()
+  const { perfilActivo } = useAuth()
+  const puedeEditar = puedeEditarDocumentoPredialCfe(perfilActivo.rol)
   const documentos = documentosPorNave(nave.id).filter((d) => TIPOS_SERVICIOS.includes(d.tipo))
   const [archivos, setArchivos] = useState<Record<string, File>>({})
   const [docAbierto, setDocAbierto] = useState<string | null>(null)
@@ -62,14 +66,17 @@ export function PredialCfeServiciosTab({ nave }: { nave: Nave }) {
           estatus={docActivo.estatusJuridico}
           archivoActual={archivos[docActivo.id] ?? null}
           onArchivoCambiado={(file) => setArchivos((prev) => ({ ...prev, [docActivo.id]: file }))}
-          onGuardarCambios={(cambios) =>
-            editarDocumento(docActivo.id, {
-              numeroFolio: cambios.numeroFolio,
-              dependenciaEmisora: cambios.dependenciaEmisora,
-              fechaEmision: cambios.fechaEmision,
-              fechaVencimiento: cambios.fechaVencimiento,
-              estatusJuridico: cambios.estatus,
-            })
+          onGuardarCambios={
+            puedeEditar
+              ? (cambios) =>
+                  editarDocumento(docActivo.id, {
+                    numeroFolio: cambios.numeroFolio,
+                    dependenciaEmisora: cambios.dependenciaEmisora,
+                    fechaEmision: cambios.fechaEmision,
+                    fechaVencimiento: cambios.fechaVencimiento,
+                    estatusJuridico: cambios.estatus,
+                  })
+              : undefined
           }
         />
       )}
