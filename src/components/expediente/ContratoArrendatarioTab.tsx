@@ -26,8 +26,9 @@ import { Mail, Pencil, Phone, ShieldAlert, Users } from 'lucide-react'
 export function ContratoArrendatarioTab({ nave }: { nave: Nave }) {
   const { moneda } = usePreferences()
   const { perfilActivo } = useAuth()
-  const { contratoPorNaveId, editarContrato } = useDataStore()
+  const { contratoPorNaveId, renovacionActivaPorContrato, resolverRenovacion } = useDataStore()
   const contrato = contratoPorNaveId(nave.id)
+  const renovacion = contrato ? renovacionActivaPorContrato(contrato.id) : undefined
   const inquilino = inquilinoById(inquilinoPorNaveId[nave.id] ?? '')
   const region = parqueById(nave.parqueId)!.region
   const pm = PM_POR_REGION[region]
@@ -35,14 +36,13 @@ export function ContratoArrendatarioTab({ nave }: { nave: Nave }) {
   const broker = brokerById(brokerPorNaveId[nave.id])
   const emergencia = contactosEmergenciaPorNave(nave.id)
 
-  // Interacción ligera de la maqueta (sin persistir entre sesiones): Dirección
-  // aprueba o rechaza la renovación vía DataStoreContext; un rechazo regresa
-  // el contrato a "En Revisión" para continuar la negociación, nunca queda en
-  // "Rechazado". El cambio se refleja en cualquier otra pantalla que lea este
-  // mismo contrato (Directorio, alertas de vencimiento, etc.).
+  // Un contrato "en revisión" es en realidad un contrato Vigente con una renovación
+  // (tabla renovaciones) abierta — Dirección aprueba o rechaza esos términos aquí; un
+  // rechazo registra el motivo pero mantiene la renovación "En Revisión" para seguir
+  // negociando, nunca queda en un estado terminal de rechazo.
   const [dialogoAbierto, setDialogoAbierto] = useState(false)
   const [editarAbierto, setEditarAbierto] = useState(false)
-  const estatusMostrado = contrato?.estatus
+  const estatusMostrado = renovacion ? renovacion.estado : contrato?.estatus
 
   return (
     <div className="flex flex-col gap-6">
@@ -75,6 +75,11 @@ export function ContratoArrendatarioTab({ nave }: { nave: Nave }) {
                   <span className="text-xs font-medium text-muted-foreground">Estatus</span>
                   <StatusBadge estatus={estatusMostrado!} />
                 </div>
+                {renovacion?.motivoRechazo && (
+                  <p className="rounded-md bg-status-warning-bg px-3 py-2 text-xs text-status-warning">
+                    Términos rechazados anteriormente: {renovacion.motivoRechazo}
+                  </p>
+                )}
                 {estatusMostrado === 'En Revisión' && puedeResolverRenovacion(perfilActivo.rol) && (
                   <div className="flex justify-end pt-1">
                     <Button size="sm" className="h-7 text-xs" onClick={() => setDialogoAbierto(true)}>
@@ -157,8 +162,8 @@ export function ContratoArrendatarioTab({ nave }: { nave: Nave }) {
           descripcion={`${inquilino?.nombreComercial} — vence ${formatFecha(contrato.fechaVencimiento)}`}
           etiquetaAprobar="Aprobar Renovación"
           etiquetaRechazar="Rechazar Términos"
-          onAprobar={() => editarContrato(contrato.id, { estatus: 'Vigente' })}
-          onRechazar={() => editarContrato(contrato.id, { estatus: 'En Revisión' })}
+          onAprobar={() => resolverRenovacion(contrato.id, 'aprobar')}
+          onRechazar={(motivo) => resolverRenovacion(contrato.id, 'rechazar', motivo)}
         />
       )}
 

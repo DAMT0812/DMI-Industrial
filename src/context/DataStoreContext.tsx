@@ -1,10 +1,9 @@
 import { createContext, useContext, useEffect, useMemo, useState, type Dispatch, type ReactNode, type SetStateAction } from 'react'
-import type { ContratoArrendamiento, DocumentoPermiso, Nave, OrdenTrabajo, ProyectoCapex, TareaOperativa } from '@/data/types'
+import type { ContratoArrendamiento, DocumentoPermiso, EstadoRenovacion, Nave, OrdenTrabajo, ProyectoCapex, RenovacionContrato, TareaOperativa } from '@/data/types'
 import { supabase } from '@/lib/supabaseClient'
 import { registrarBitacora } from '@/lib/bitacora'
 import { useAuth } from '@/context/AuthContext'
 import { documentosPorNave as documentosPorNaveBase } from '@/data/documentos'
-import { contratos as contratosBase, contratoPorNaveId as contratoPorNaveIdBase } from '@/data/contratos'
 import { ordenesTrabajo as ordenesTrabajoBase, ordenesPorNave as ordenesPorNaveBase } from '@/data/ordenesTrabajo'
 import { tareasOperativas as tareasOperativasBase } from '@/data/tareasOperativas'
 import {
@@ -19,15 +18,18 @@ import * as portafolioKpis from '@/data/portafolioKpis'
 import * as mantenimientoKpis from '@/data/mantenimientoKpis'
 import { aplicarOverrides, type OverrideMap } from '@/data/overrides'
 
-// naves y documentos (Fases 6f/6d) persisten de verdad en Supabase. El resto de
-// entidades editables sigue como arreglo base (src/data/*.ts, sin tocar) + un mapa
-// de overrides de sesión que se fusiona aquí, hasta que les toque su propia fase de
-// migración. Todo lo derivado (alertas, tareas vivas, KPIs de portafolio y
-// mantenimiento) se recalcula de forma reactiva a partir de esos datos ya fusionados,
+// naves, documentos y contratos/renovaciones (Fases 6f/6d/6g) persisten de verdad en
+// Supabase. El resto de entidades editables sigue como arreglo base (src/data/*.ts, sin
+// tocar) + un mapa de overrides de sesión que se fusiona aquí, hasta que les toque su
+// propia fase de migración. Todo lo derivado (alertas, tareas vivas, KPIs de portafolio
+// y mantenimiento) se recalcula de forma reactiva a partir de esos datos ya fusionados,
 // así una edición se refleja automáticamente en cualquier pantalla que consuma estos
 // mismos hooks.
 interface DataStoreContextValue {
   naves: Nave[]
+  // false hasta que se resuelve el primer fetch a Supabase — úsalo para no tratar una
+  // nave "todavía no cargada" como "no existe" (p. ej. al refrescar /naves/:id de golpe).
+  navesListas: boolean
   naveById: (id: string) => Nave | undefined
   agregarNave: (nave: Nave) => void
   editarNave: (id: string, cambios: Partial<Nave>) => void
@@ -39,6 +41,9 @@ interface DataStoreContextValue {
   contratos: ContratoArrendamiento[]
   contratoPorNaveId: (naveId: string) => ContratoArrendamiento | undefined
   editarContrato: (id: string, cambios: Partial<ContratoArrendamiento>) => void
+  renovaciones: RenovacionContrato[]
+  renovacionActivaPorContrato: (contratoId: string) => RenovacionContrato | undefined
+  resolverRenovacion: (contratoId: string, decision: 'aprobar' | 'rechazar', motivo?: string) => void
 
   ordenesTrabajo: OrdenTrabajo[]
   ordenesPorNave: (naveId: string) => OrdenTrabajo[]
@@ -170,6 +175,80 @@ function naveAFila(cambios: Partial<Nave>): Record<string, unknown> {
   return fila
 }
 
+// contratos y renovaciones (Fase 6g) también persisten de verdad. El ciclo de vida del
+// contrato en sí (contratos.vigencia → ContratoArrendamiento.estatus) es independiente
+// del proceso de negociación de una renovación (tabla renovaciones): un contrato
+// "en revisión" en la UI es en realidad un contrato Vigente con una renovación abierta.
+function contratoDeFila(fila: Record<string, unknown>): ContratoArrendamiento {
+  return {
+    id: fila.id as string,
+    naveId: fila.nave_id as string,
+    inquilinoId: fila.inquilino_id as string,
+    fechaInicio: fila.fecha_inicio as string,
+    fechaEntrega: fila.fecha_entrega as string,
+    fechaVencimiento: fila.fecha_vencimiento as string,
+    plazoMeses: Number(fila.plazo_meses),
+    moneda: fila.moneda as ContratoArrendamiento['moneda'],
+    rentaBaseMensual: Number(fila.renta_base_mensual),
+    tarifaPorM2: Number(fila.tarifa_por_m2),
+    cam: Number(fila.cam),
+    depositoGarantia: Number(fila.deposito_garantia),
+    esquemaIncremento: fila.esquema_incremento as string,
+    opcionesRenovacion: fila.opciones_renovacion as string,
+    tipoContrato: fila.tipo_contrato as ContratoArrendamiento['tipoContrato'],
+    avalista: fila.avalista as string,
+    clausulasEspeciales: (fila.clausulas_especiales as string[] | null) ?? [],
+    estatus: fila.vigencia as ContratoArrendamiento['estatus'],
+  }
+}
+
+function describirCambiosContrato(cambios: Partial<ContratoArrendamiento>): string {
+  const partes: string[] = []
+  if (cambios.estatus !== undefined) partes.push(`vigencia → ${cambios.estatus}`)
+  if (cambios.tipoContrato !== undefined) partes.push(`tipo de contrato → ${cambios.tipoContrato}`)
+  if (cambios.fechaVencimiento !== undefined) partes.push('fecha de vencimiento actualizada')
+  if (cambios.rentaBaseMensual !== undefined || cambios.tarifaPorM2 !== undefined || cambios.cam !== undefined) {
+    partes.push('condiciones económicas actualizadas')
+  }
+  if (cambios.avalista !== undefined) partes.push('avalista actualizado')
+  return partes.length ? `Contrato actualizado: ${partes.join(', ')}` : 'Contrato actualizado'
+}
+
+function contratoAFila(cambios: Partial<ContratoArrendamiento>): Record<string, unknown> {
+  const fila: Record<string, unknown> = {}
+  if (cambios.fechaInicio !== undefined) fila.fecha_inicio = cambios.fechaInicio
+  if (cambios.fechaEntrega !== undefined) fila.fecha_entrega = cambios.fechaEntrega
+  if (cambios.fechaVencimiento !== undefined) fila.fecha_vencimiento = cambios.fechaVencimiento
+  if (cambios.plazoMeses !== undefined) fila.plazo_meses = cambios.plazoMeses
+  if (cambios.moneda !== undefined) fila.moneda = cambios.moneda
+  if (cambios.rentaBaseMensual !== undefined) fila.renta_base_mensual = cambios.rentaBaseMensual
+  if (cambios.tarifaPorM2 !== undefined) fila.tarifa_por_m2 = cambios.tarifaPorM2
+  if (cambios.cam !== undefined) fila.cam = cambios.cam
+  if (cambios.depositoGarantia !== undefined) fila.deposito_garantia = cambios.depositoGarantia
+  if (cambios.esquemaIncremento !== undefined) fila.esquema_incremento = cambios.esquemaIncremento
+  if (cambios.opcionesRenovacion !== undefined) fila.opciones_renovacion = cambios.opcionesRenovacion
+  if (cambios.tipoContrato !== undefined) fila.tipo_contrato = cambios.tipoContrato
+  if (cambios.avalista !== undefined) fila.avalista = cambios.avalista
+  if (cambios.clausulasEspeciales !== undefined) fila.clausulas_especiales = cambios.clausulasEspeciales
+  if (cambios.estatus !== undefined) fila.vigencia = cambios.estatus
+  return fila
+}
+
+function renovacionDeFila(fila: Record<string, unknown>): RenovacionContrato {
+  return {
+    id: fila.id as string,
+    contratoId: fila.contrato_id as string,
+    estado: fila.estado as EstadoRenovacion,
+    motivoRechazo: (fila.motivo_rechazo as string | null) ?? null,
+    motivoNoRenovacion: (fila.motivo_no_renovacion as string | null) ?? null,
+    fechaApertura: (fila.fecha_apertura as string | null) ?? null,
+  }
+}
+
+function renovacionAbierta(renovaciones: RenovacionContrato[], contratoId: string) {
+  return renovaciones.find((r) => r.contratoId === contratoId && r.estado !== 'Aprobada' && r.estado !== 'No Renovada')
+}
+
 function documentoDeFila(fila: Record<string, unknown>): DocumentoPermiso {
   return {
     id: fila.id as string,
@@ -215,8 +294,10 @@ function crearEditor<T>(setOverrides: Dispatch<SetStateAction<OverrideMap<T>>>) 
 export function DataStoreProvider({ children }: { children: ReactNode }) {
   const { session } = useAuth()
   const [naves, setNaves] = useState<Nave[]>([])
+  const [navesListas, setNavesListas] = useState(false)
   const [documentos, setDocumentos] = useState<DocumentoPermiso[]>([])
-  const [contratosOverrides, setContratosOverrides] = useState<OverrideMap<ContratoArrendamiento>>({})
+  const [contratos, setContratos] = useState<ContratoArrendamiento[]>([])
+  const [renovaciones, setRenovaciones] = useState<RenovacionContrato[]>([])
   const [ordenesOverrides, setOrdenesOverrides] = useState<OverrideMap<OrdenTrabajo>>({})
   const [tareasOverrides, setTareasOverrides] = useState<OverrideMap<TareaOperativa>>({})
   const [capexOverrides, setCapexOverrides] = useState<OverrideMap<ProyectoCapex>>({})
@@ -229,7 +310,10 @@ export function DataStoreProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!userId) {
       setNaves([])
+      setNavesListas(false)
       setDocumentos([])
+      setContratos([])
+      setRenovaciones([])
       return
     }
     supabase
@@ -237,6 +321,7 @@ export function DataStoreProvider({ children }: { children: ReactNode }) {
       .select('*')
       .then(({ data }) => {
         if (data) setNaves(data.map(naveDeFila))
+        setNavesListas(true)
       })
     supabase
       .from('documentos')
@@ -244,9 +329,20 @@ export function DataStoreProvider({ children }: { children: ReactNode }) {
       .then(({ data }) => {
         if (data) setDocumentos(data.map(documentoDeFila))
       })
+    supabase
+      .from('contratos')
+      .select('*')
+      .then(({ data }) => {
+        if (data) setContratos(data.map(contratoDeFila))
+      })
+    supabase
+      .from('renovaciones')
+      .select('*')
+      .then(({ data }) => {
+        if (data) setRenovaciones(data.map(renovacionDeFila))
+      })
   }, [userId])
 
-  const contratos = useMemo(() => aplicarOverrides(contratosBase, contratosOverrides), [contratosOverrides])
   const ordenesTrabajo = useMemo(() => aplicarOverrides(ordenesTrabajoBase, ordenesOverrides), [ordenesOverrides])
   const tareasOperativas = useMemo(() => aplicarOverrides(tareasOperativasBase, tareasOverrides), [tareasOverrides])
   const proyectosCapex = useMemo(() => aplicarOverrides(proyectosCapexBase, capexOverrides), [capexOverrides])
@@ -258,6 +354,7 @@ export function DataStoreProvider({ children }: { children: ReactNode }) {
     const capexAutorizadoTotal = capexAutorizadoTotalBase(proyectosCapex)
     return {
       naves,
+      navesListas,
       naveById: (id) => naves.find((n) => n.id === id),
       agregarNave: (nave) => {
         setNaves((prev) => [...prev, nave])
@@ -308,8 +405,49 @@ export function DataStoreProvider({ children }: { children: ReactNode }) {
       },
 
       contratos,
-      contratoPorNaveId: (naveId) => contratoPorNaveIdBase(naveId, contratos),
-      editarContrato: crearEditor(setContratosOverrides),
+      contratoPorNaveId: (naveId) => contratos.find((c) => c.naveId === naveId),
+      editarContrato: (id, cambios) => {
+        setContratos((prev) => prev.map((c) => (c.id === id ? { ...c, ...cambios } : c)))
+        supabase
+          .from('contratos')
+          .update({ ...contratoAFila(cambios), updated_at: new Date().toISOString() })
+          .eq('id', id)
+          .then(({ error }) => {
+            if (error) {
+              console.error('Error al guardar contrato en Supabase:', error.message)
+              return
+            }
+            registrarBitacora('contratos', id, 'edicion', describirCambiosContrato(cambios))
+          })
+      },
+
+      renovaciones,
+      renovacionActivaPorContrato: (contratoId) => renovacionAbierta(renovaciones, contratoId),
+      resolverRenovacion: (contratoId, decision, motivo) => {
+        const renovacion = renovacionAbierta(renovaciones, contratoId)
+        if (!renovacion) return
+        const cambios: Partial<RenovacionContrato> = decision === 'aprobar' ? { estado: 'Aprobada' } : { motivoRechazo: motivo ?? null }
+        setRenovaciones((prev) => prev.map((r) => (r.id === renovacion.id ? { ...r, ...cambios } : r)))
+        const filaCambios: Record<string, unknown> = { updated_at: new Date().toISOString() }
+        if (cambios.estado !== undefined) filaCambios.estado = cambios.estado
+        if (cambios.motivoRechazo !== undefined) filaCambios.motivo_rechazo = cambios.motivoRechazo
+        supabase
+          .from('renovaciones')
+          .update(filaCambios)
+          .eq('id', renovacion.id)
+          .then(({ error }) => {
+            if (error) {
+              console.error('Error al guardar renovación en Supabase:', error.message)
+              return
+            }
+            registrarBitacora(
+              'renovaciones',
+              renovacion.id,
+              decision === 'aprobar' ? 'aprobada' : 'terminos_rechazados',
+              decision === 'aprobar' ? 'Renovación de contrato aprobada' : `Términos de renovación rechazados: ${motivo}`,
+            )
+          })
+      },
 
       ordenesTrabajo,
       ordenesPorNave: (naveId) => ordenesPorNaveBase(naveId, ordenesTrabajo),
@@ -347,7 +485,7 @@ export function DataStoreProvider({ children }: { children: ReactNode }) {
       slaPromedioResolucionHoras: mantenimientoKpis.slaPromedioResolucionHoras(ordenesTrabajo),
       proyectoMayorEnCurso: mantenimientoKpis.proyectoMayorEnCurso(proyectosCapex),
     }
-  }, [naves, documentos, contratos, ordenesTrabajo, tareasOperativas, proyectosCapex, alertas, tareasVivas])
+  }, [naves, navesListas, documentos, contratos, renovaciones, ordenesTrabajo, tareasOperativas, proyectosCapex, alertas, tareasVivas])
 
   return <DataStoreContext.Provider value={value}>{children}</DataStoreContext.Provider>
 }

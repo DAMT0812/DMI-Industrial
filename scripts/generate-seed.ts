@@ -187,9 +187,9 @@ lines.push(
   )
 )
 
-// contratos — vigencia siempre arranca en 'Vigente'; el flujo de renovación (si el dato
-// de la maqueta lo insinuaba, ej. 'En Revisión') se gestiona aparte en la tabla renovaciones,
-// que se deja vacía en el seed y se alimenta desde la app (Fase 6g).
+// contratos — vigencia refleja el ciclo de vida real del contrato (Vigente/En Mora);
+// el flujo de negociación de renovación que la maqueta insinuaba con 'En Revisión' vive
+// aparte en la tabla renovaciones (Fase 6g), poblada justo abajo para esos mismos contratos.
 lines.push(
   insertStatement(
     'contratos',
@@ -203,10 +203,21 @@ lines.push(
       sqlStr(c.fechaVencimiento), sqlNum(c.plazoMeses), sqlStr(c.moneda), sqlNum(c.rentaBaseMensual),
       sqlNum(c.tarifaPorM2), sqlNum(c.cam), sqlNum(c.depositoGarantia), sqlStr(c.esquemaIncremento),
       sqlStr(c.opcionesRenovacion), sqlStr(c.tipoContrato), sqlStr(c.avalista), sqlTextArray(c.clausulasEspeciales),
-      sqlStr('Vigente'),
+      sqlStr(c.estatus === 'En Mora' ? 'En Mora' : 'Vigente'),
     ])
   )
 )
+
+const contratosEnRevision = contratos.filter((c) => c.estatus === 'En Revisión')
+if (contratosEnRevision.length > 0) {
+  lines.push(
+    insertStatement(
+      'renovaciones',
+      ['contrato_id', 'estado'],
+      contratosEnRevision.map((c) => [sqlStr(c.id), sqlStr('En Revisión')])
+    )
+  )
+}
 
 // sistemas_criticos_nave (instancia por nave del catálogo maestro de 12 sistemas)
 lines.push(

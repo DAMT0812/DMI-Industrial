@@ -22,11 +22,18 @@ export function ExpedienteNavePage() {
   const { naveId } = useParams()
   const { moneda, unidad } = usePreferences()
   const { perfilActivo } = useAuth()
-  const { naveById, contratoPorNaveId } = useDataStore()
+  const { naveById, navesListas, contratoPorNaveId } = useDataStore()
   const [editarAbierto, setEditarAbierto] = useState(false)
   const nave = naveId ? naveById(naveId) : undefined
 
-  if (!nave) return <Navigate to="/" replace />
+  if (!nave) {
+    // navesListas es false hasta que resuelve el primer fetch a Supabase — al refrescar
+    // esta página de golpe, "no encontrada todavía" no es lo mismo que "no existe".
+    if (!navesListas) {
+      return <div className="flex min-h-[50vh] items-center justify-center text-sm text-muted-foreground">Cargando…</div>
+    }
+    return <Navigate to="/" replace />
+  }
 
   const parque = parqueById(nave.parqueId)!
   const contrato = contratoPorNaveId(nave.id)

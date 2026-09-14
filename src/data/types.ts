@@ -11,8 +11,6 @@ export type EstatusOperativo =
   | 'Mant. Preventivo HVAC'
   | 'En Mora'
 
-export type EstatusGeneral = 'Pendiente' | 'En Revisión' | 'Aprobado' | 'Rechazado' | 'En Mora'
-
 // Ciclo de vida real de un documento del expediente — sección 6.2 del prompt de
 // referencia. El paso a "En Mora" es automático al cumplirse la fecha de vencimiento
 // sobre un documento Aprobado/Vigente, nunca una acción manual.
@@ -102,9 +100,26 @@ export interface ContratoArrendamiento {
   tipoContrato: TipoContrato
   avalista: string
   clausulasEspeciales: string[]
-  // "Terminación Programada": Dirección decidió no renovar; el contrato sigue vigente
-  // hasta su fecha de vencimiento y luego pasa a historial (no reabre negociación).
-  estatus: EstatusGeneral | 'Vigente' | 'Terminación Programada'
+  // Ciclo de vida del contrato en sí (no el de una negociación de renovación en curso,
+  // que vive aparte en RenovacionContrato). "Terminación Programada": Dirección decidió
+  // no renovar; el contrato sigue vigente hasta su fecha de vencimiento y luego pasa a
+  // historial (no reabre negociación).
+  estatus: 'Vigente' | 'Terminación Programada' | 'Vencido' | 'Terminado' | 'En Mora'
+}
+
+export type EstadoRenovacion = 'Pendiente' | 'En Revisión' | 'Pendiente de Firma' | 'Aprobada' | 'No Renovada'
+
+// Proceso de negociación de renovación de un contrato — independiente del ciclo de vida
+// del contrato (ContratoArrendamiento.estatus). Un contrato "en revisión" en la UI es en
+// realidad un contrato Vigente con una RenovacionContrato abierta (estado distinto de
+// Aprobada/No Renovada).
+export interface RenovacionContrato {
+  id: string
+  contratoId: string
+  estado: EstadoRenovacion
+  motivoRechazo: string | null
+  motivoNoRenovacion: string | null
+  fechaApertura: string | null
 }
 
 export type TipoDocumento =

@@ -284,13 +284,19 @@ insert into contratos (id, nave_id, inquilino_id, fecha_inicio, fecha_entrega, f
   ('CTR-09', 'NAVE-10', 'INQ-09', '2021-11-01', '2021-11-01', '2029-10-31', 96, 'USD', 170300, 6.5, 20436, 340600, '3% anual fijo', '2 periodos de 5 años', 'Triple Net (NNN)', 'Altavia Componentes Automotrices (matriz)', ARRAY['Exclusividad territorial 15 km'], 'Vigente'),
   ('CTR-10', 'NAVE-11', 'INQ-10', '2017-08-01', '2017-08-01', '2027-06-15', 118, 'USD', 91800, 4.5, 11016, 183600, '3.5% anual fijo', '1 periodo de 5 años', 'Doble Neto (NN)', 'Nortex Manufacturing Holdings', '{}', 'Vigente'),
   ('CTR-11', 'NAVE-12', 'INQ-11', '2022-04-01', '2022-04-01', '2028-03-31', 72, 'USD', 120310, 5.3, 14437, 240620, '3% anual fijo', '2 periodos de 5 años', 'Triple Net (NNN)', 'Vantex Global Supply Chain', ARRAY['Derecho de preferencia sobre nave 13'], 'Vigente'),
-  ('CTR-12', 'NAVE-13', 'INQ-12', '2015-12-15', '2015-12-15', '2026-12-14', 132, 'USD', 36360, 3.6, 4363, 72720, '4% anual fijo', 'Sin opción registrada', 'Bruto Modificado', 'Roble Industrial de México (aval solidario)', ARRAY['Suspendida por falta de pago CAM y renta 2 meses'], 'Vigente'),
+  ('CTR-12', 'NAVE-13', 'INQ-12', '2015-12-15', '2015-12-15', '2026-12-14', 132, 'USD', 36360, 3.6, 4363, 72720, '4% anual fijo', 'Sin opción registrada', 'Bruto Modificado', 'Roble Industrial de México (aval solidario)', ARRAY['Suspendida por falta de pago CAM y renta 2 meses'], 'En Mora'),
   ('CTR-13', 'NAVE-14', 'INQ-13', '2021-06-01', '2021-06-01', '2027-05-31', 72, 'USD', 94860, 5.1, 11383, 189720, 'Ajuste anual por INPC', '1 periodo de 5 años', 'Triple Net (NNN)', 'Katun Manufacturing Group', '{}', 'Vigente'),
   ('CTR-14', 'NAVE-15', 'INQ-14', '2019-01-01', '2019-01-01', '2026-11-30', 95, 'USD', 72160, 4.4, 8659, 144320, '3% anual fijo', '1 periodo de 3 años', 'Doble Neto (NN)', 'Bluewave Electronics Manufacturing (matriz)', '{}', 'Vigente'),
   ('CTR-15', 'NAVE-16', 'INQ-15', '2020-10-01', '2020-10-01', '2027-09-30', 84, 'USD', 68150, 4.7, 8178, 136300, '3.5% anual fijo', '2 periodos de 5 años', 'Triple Net (NNN)', 'Delta Forge Industrial Holdings', '{}', 'Vigente'),
   ('CTR-16', 'NAVE-17', 'INQ-16', '2016-05-01', '2016-05-01', '2026-10-20', 126, 'USD', 49780, 3.8, 5974, 99560, '4% anual fijo', 'Sin opción registrada', 'Bruto Modificado', 'Solventum Materials Corp.', ARRAY['En negociación de renovación anticipada'], 'Vigente'),
   ('CTR-17', 'NAVE-18', 'INQ-17', '2023-03-01', '2023-03-01', '2030-02-28', 84, 'USD', 117150, 5.5, 14058, 234300, '3% anual fijo', '2 periodos de 5 años', 'Triple Net (NNN)', 'Grupo Kanoa Holdings', '{}', 'Vigente'),
   ('CTR-18', 'NAVE-19', 'INQ-18', '2017-03-01', '2017-03-01', '2027-02-28', 120, 'USD', 63940, 4.6, 7673, 127880, '3% anual fijo', '1 periodo de 5 años', 'Doble Neto (NN)', 'Cobre y Acero Industrial (aval solidario)', '{}', 'Vigente')
+on conflict (id) do nothing;
+
+insert into renovaciones (contrato_id, estado) values
+  ('CTR-02', 'En Revisión'),
+  ('CTR-07', 'En Revisión'),
+  ('CTR-16', 'En Revisión')
 on conflict (id) do nothing;
 
 insert into sistemas_criticos_nave (id, nave_id, sistema_id, codigo_referencia, vendor, costo_anual_estimado, fecha_ultimo_mantenimiento, fecha_proximo_mantenimiento, indicador_salud, estatus_salud, ultima_intervencion) values
