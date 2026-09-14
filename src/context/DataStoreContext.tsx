@@ -1,10 +1,20 @@
 import { createContext, useContext, useEffect, useMemo, useState, type Dispatch, type ReactNode, type SetStateAction } from 'react'
-import type { ContratoArrendamiento, DocumentoPermiso, EstadoRenovacion, Nave, OrdenTrabajo, ProyectoCapex, RenovacionContrato, TareaOperativa } from '@/data/types'
+import type {
+  ContratoArrendamiento,
+  DocumentoPermiso,
+  EstadoRenovacion,
+  EvidenciaOrden,
+  Nave,
+  OrdenTrabajo,
+  PausaOrden,
+  ProyectoCapex,
+  RenovacionContrato,
+  TareaOperativa,
+} from '@/data/types'
 import { supabase } from '@/lib/supabaseClient'
 import { registrarBitacora } from '@/lib/bitacora'
 import { useAuth } from '@/context/AuthContext'
 import { documentosPorNave as documentosPorNaveBase } from '@/data/documentos'
-import { ordenesTrabajo as ordenesTrabajoBase, ordenesPorNave as ordenesPorNaveBase } from '@/data/ordenesTrabajo'
 import { tareasOperativas as tareasOperativasBase } from '@/data/tareasOperativas'
 import {
   proyectosCapex as proyectosCapexBase,
@@ -48,6 +58,12 @@ interface DataStoreContextValue {
   ordenesTrabajo: OrdenTrabajo[]
   ordenesPorNave: (naveId: string) => OrdenTrabajo[]
   editarOrden: (id: string, cambios: Partial<OrdenTrabajo>) => void
+  pausaAbiertaPorOrden: (ordenId: string) => PausaOrden | undefined
+  pausarOrden: (ordenId: string, motivo: string) => void
+  reanudarOrden: (ordenId: string) => void
+  evidenciaPendientePorOrden: (ordenId: string) => EvidenciaOrden | undefined
+  enviarEvidencia: (ordenId: string, archivo: File) => void
+  resolverEvidenciaCierre: (ordenId: string, decision: 'aprobar' | 'rechazar', motivo?: string) => void
 
   tareasOperativas: TareaOperativa[]
   editarTarea: (id: string, cambios: Partial<TareaOperativa>) => void
@@ -249,6 +265,86 @@ function renovacionAbierta(renovaciones: RenovacionContrato[], contratoId: strin
   return renovaciones.find((r) => r.contratoId === contratoId && r.estado !== 'Aprobada' && r.estado !== 'No Renovada')
 }
 
+// ordenes_trabajo (Fase 6h) también persiste de verdad, con una máquina de estados real
+// respaldada por dos tablas auxiliares que ya existían en el esquema sin usarse:
+// ordenes_pausas (ventanas de "Esperando Refacción") y ordenes_evidencia (evidencia de
+// cierre que Facility Manager sube y luego valida o rechaza antes de cerrar la orden).
+function ordenDeFila(fila: Record<string, unknown>): OrdenTrabajo {
+  return {
+    id: fila.id as string,
+    folio: fila.folio as string,
+    naveId: fila.nave_id as string,
+    sistemaCriticoId: (fila.sistema_critico_id as string | null) ?? null,
+    categoria: fila.categoria as string,
+    descripcion: fila.descripcion as string,
+    prioridad: fila.prioridad as OrdenTrabajo['prioridad'],
+    slaHoras: Number(fila.sla_horas),
+    contratistaId: fila.contratista_id as string,
+    costoEstimado: Number(fila.costo_estimado),
+    estatus: fila.estatus as OrdenTrabajo['estatus'],
+    fechaCreacion: fila.fecha_creacion as string,
+    fechaCompromiso: fila.fecha_compromiso as string,
+    fechaCierre: (fila.fecha_cierre as string | null) ?? null,
+    motivoCancelacion: (fila.motivo_cancelacion as string | null) ?? null,
+  }
+}
+
+function describirCambiosOrden(cambios: Partial<OrdenTrabajo>): string {
+  const partes: string[] = []
+  if (cambios.estatus !== undefined) partes.push(`estatus → ${cambios.estatus}`)
+  if (cambios.prioridad !== undefined) partes.push(`prioridad → ${cambios.prioridad}`)
+  if (cambios.contratistaId !== undefined) partes.push('contratista reasignado')
+  if (cambios.costoEstimado !== undefined) partes.push('costo estimado actualizado')
+  if (cambios.categoria !== undefined || cambios.descripcion !== undefined) partes.push('ficha actualizada')
+  if (cambios.motivoCancelacion !== undefined) partes.push(`motivo de cancelación: ${cambios.motivoCancelacion}`)
+  return partes.length ? `Orden actualizada: ${partes.join(', ')}` : 'Orden actualizada'
+}
+
+function ordenAFila(cambios: Partial<OrdenTrabajo>): Record<string, unknown> {
+  const fila: Record<string, unknown> = {}
+  if (cambios.categoria !== undefined) fila.categoria = cambios.categoria
+  if (cambios.descripcion !== undefined) fila.descripcion = cambios.descripcion
+  if (cambios.prioridad !== undefined) fila.prioridad = cambios.prioridad
+  if (cambios.slaHoras !== undefined) fila.sla_horas = cambios.slaHoras
+  if (cambios.contratistaId !== undefined) fila.contratista_id = cambios.contratistaId
+  if (cambios.costoEstimado !== undefined) fila.costo_estimado = cambios.costoEstimado
+  if (cambios.estatus !== undefined) fila.estatus = cambios.estatus
+  if (cambios.fechaCierre !== undefined) fila.fecha_cierre = cambios.fechaCierre
+  if (cambios.motivoCancelacion !== undefined) fila.motivo_cancelacion = cambios.motivoCancelacion
+  return fila
+}
+
+function actualizarOrdenEnSupabase(id: string, fila: Record<string, unknown>) {
+  return supabase
+    .from('ordenes_trabajo')
+    .update({ ...fila, updated_at: new Date().toISOString() })
+    .eq('id', id)
+}
+
+function pausaDeFila(fila: Record<string, unknown>): PausaOrden {
+  return {
+    id: fila.id as string,
+    ordenId: fila.orden_id as string,
+    inicio: fila.inicio as string,
+    fin: (fila.fin as string | null) ?? null,
+    motivo: (fila.motivo as string | null) ?? null,
+  }
+}
+
+function evidenciaDeFila(fila: Record<string, unknown>): EvidenciaOrden {
+  return {
+    id: fila.id as string,
+    ordenId: fila.orden_id as string,
+    archivoPath: (fila.archivo_path as string | null) ?? null,
+    fecha: fila.fecha as string,
+    resultado: fila.resultado as EvidenciaOrden['resultado'],
+    motivoRechazo: (fila.motivo_rechazo as string | null) ?? null,
+    retrabajo: (fila.retrabajo as boolean | null) ?? null,
+    fechaAprobacion: (fila.fecha_aprobacion as string | null) ?? null,
+    comentario: (fila.comentario as string | null) ?? null,
+  }
+}
+
 function documentoDeFila(fila: Record<string, unknown>): DocumentoPermiso {
   return {
     id: fila.id as string,
@@ -298,7 +394,9 @@ export function DataStoreProvider({ children }: { children: ReactNode }) {
   const [documentos, setDocumentos] = useState<DocumentoPermiso[]>([])
   const [contratos, setContratos] = useState<ContratoArrendamiento[]>([])
   const [renovaciones, setRenovaciones] = useState<RenovacionContrato[]>([])
-  const [ordenesOverrides, setOrdenesOverrides] = useState<OverrideMap<OrdenTrabajo>>({})
+  const [ordenesTrabajo, setOrdenesTrabajo] = useState<OrdenTrabajo[]>([])
+  const [ordenesPausas, setOrdenesPausas] = useState<PausaOrden[]>([])
+  const [ordenesEvidencia, setOrdenesEvidencia] = useState<EvidenciaOrden[]>([])
   const [tareasOverrides, setTareasOverrides] = useState<OverrideMap<TareaOperativa>>({})
   const [capexOverrides, setCapexOverrides] = useState<OverrideMap<ProyectoCapex>>({})
 
@@ -314,6 +412,9 @@ export function DataStoreProvider({ children }: { children: ReactNode }) {
       setDocumentos([])
       setContratos([])
       setRenovaciones([])
+      setOrdenesTrabajo([])
+      setOrdenesPausas([])
+      setOrdenesEvidencia([])
       return
     }
     supabase
@@ -341,9 +442,26 @@ export function DataStoreProvider({ children }: { children: ReactNode }) {
       .then(({ data }) => {
         if (data) setRenovaciones(data.map(renovacionDeFila))
       })
+    supabase
+      .from('ordenes_trabajo')
+      .select('*')
+      .then(({ data }) => {
+        if (data) setOrdenesTrabajo(data.map(ordenDeFila))
+      })
+    supabase
+      .from('ordenes_pausas')
+      .select('*')
+      .then(({ data }) => {
+        if (data) setOrdenesPausas(data.map(pausaDeFila))
+      })
+    supabase
+      .from('ordenes_evidencia')
+      .select('*')
+      .then(({ data }) => {
+        if (data) setOrdenesEvidencia(data.map(evidenciaDeFila))
+      })
   }, [userId])
 
-  const ordenesTrabajo = useMemo(() => aplicarOverrides(ordenesTrabajoBase, ordenesOverrides), [ordenesOverrides])
   const tareasOperativas = useMemo(() => aplicarOverrides(tareasOperativasBase, tareasOverrides), [tareasOverrides])
   const proyectosCapex = useMemo(() => aplicarOverrides(proyectosCapexBase, capexOverrides), [capexOverrides])
 
@@ -450,8 +568,138 @@ export function DataStoreProvider({ children }: { children: ReactNode }) {
       },
 
       ordenesTrabajo,
-      ordenesPorNave: (naveId) => ordenesPorNaveBase(naveId, ordenesTrabajo),
-      editarOrden: crearEditor(setOrdenesOverrides),
+      ordenesPorNave: (naveId) => ordenesTrabajo.filter((o) => o.naveId === naveId),
+      editarOrden: (id, cambios) => {
+        setOrdenesTrabajo((prev) => prev.map((o) => (o.id === id ? { ...o, ...cambios } : o)))
+        actualizarOrdenEnSupabase(id, ordenAFila(cambios)).then(({ error }) => {
+          if (error) {
+            console.error('Error al guardar orden en Supabase:', error.message)
+            return
+          }
+          registrarBitacora('ordenes_trabajo', id, 'edicion', describirCambiosOrden(cambios))
+        })
+      },
+
+      pausaAbiertaPorOrden: (ordenId) => ordenesPausas.find((p) => p.ordenId === ordenId && !p.fin),
+      pausarOrden: (ordenId, motivo) => {
+        setOrdenesTrabajo((prev) => prev.map((o) => (o.id === ordenId ? { ...o, estatus: 'Esperando Refacción' } : o)))
+        actualizarOrdenEnSupabase(ordenId, { estatus: 'Esperando Refacción' }).then(({ error }) => {
+          if (error) {
+            console.error('Error al pausar orden en Supabase:', error.message)
+            return
+          }
+          registrarBitacora('ordenes_trabajo', ordenId, 'pausada', `Orden pausada — esperando refacción: ${motivo}`)
+        })
+        supabase
+          .from('ordenes_pausas')
+          .insert({ orden_id: ordenId, motivo })
+          .select()
+          .then(({ data, error }) => {
+            if (error) {
+              console.error('Error al registrar pausa en Supabase:', error.message)
+              return
+            }
+            if (data) setOrdenesPausas((prev) => [...prev, ...data.map(pausaDeFila)])
+          })
+      },
+      reanudarOrden: (ordenId) => {
+        const pausa = ordenesPausas.find((p) => p.ordenId === ordenId && !p.fin)
+        setOrdenesTrabajo((prev) => prev.map((o) => (o.id === ordenId ? { ...o, estatus: 'En ejecución' } : o)))
+        actualizarOrdenEnSupabase(ordenId, { estatus: 'En ejecución' }).then(({ error }) => {
+          if (error) {
+            console.error('Error al reanudar orden en Supabase:', error.message)
+            return
+          }
+          registrarBitacora('ordenes_trabajo', ordenId, 'reanudada', 'Orden reanudada')
+        })
+        if (!pausa) return
+        const fin = new Date().toISOString()
+        setOrdenesPausas((prev) => prev.map((p) => (p.id === pausa.id ? { ...p, fin } : p)))
+        supabase
+          .from('ordenes_pausas')
+          .update({ fin })
+          .eq('id', pausa.id)
+          .then(({ error }) => {
+            if (error) console.error('Error al cerrar pausa en Supabase:', error.message)
+          })
+      },
+
+      evidenciaPendientePorOrden: (ordenId) => ordenesEvidencia.find((e) => e.ordenId === ordenId && e.resultado === 'Pendiente'),
+      enviarEvidencia: (ordenId, archivo) => {
+        const path = `evidencia-ordenes/${ordenId}/${Date.now()}-${archivo.name.replace(/[^a-zA-Z0-9.\-_]/g, '_')}`
+        supabase
+          .storage.from('documentos')
+          .upload(path, archivo)
+          .then(({ error: errorSubida }) => {
+            if (errorSubida) {
+              console.error('Error al subir evidencia a Supabase Storage:', errorSubida.message)
+              return
+            }
+            supabase
+              .from('ordenes_evidencia')
+              .insert({ orden_id: ordenId, archivo_path: path, autor_id: userId ?? null })
+              .select()
+              .then(({ data, error }) => {
+                if (error) {
+                  console.error('Error al registrar evidencia en Supabase:', error.message)
+                  return
+                }
+                if (data) setOrdenesEvidencia((prev) => [...prev, ...data.map(evidenciaDeFila)])
+                setOrdenesTrabajo((prev) => prev.map((o) => (o.id === ordenId ? { ...o, estatus: 'Pendiente de Evidencia' } : o)))
+                actualizarOrdenEnSupabase(ordenId, { estatus: 'Pendiente de Evidencia' }).then(({ error }) => {
+                  if (error) {
+                    console.error('Error al guardar orden en Supabase:', error.message)
+                    return
+                  }
+                  registrarBitacora('ordenes_trabajo', ordenId, 'evidencia_enviada', 'Orden enviada a validación con evidencia de cierre')
+                })
+              })
+          })
+      },
+      resolverEvidenciaCierre: (ordenId, decision, motivo) => {
+        const evidencia = ordenesEvidencia.find((e) => e.ordenId === ordenId && e.resultado === 'Pendiente')
+        const nuevoEstatus: OrdenTrabajo['estatus'] = decision === 'aprobar' ? 'Validado' : 'En ejecución'
+        const fechaCierre = decision === 'aprobar' ? new Date().toISOString().slice(0, 10) : undefined
+        setOrdenesTrabajo((prev) =>
+          prev.map((o) => (o.id === ordenId ? { ...o, estatus: nuevoEstatus, fechaCierre: fechaCierre ?? o.fechaCierre } : o)),
+        )
+        actualizarOrdenEnSupabase(ordenId, { estatus: nuevoEstatus, ...(fechaCierre !== undefined ? { fecha_cierre: fechaCierre } : {}) }).then(
+          ({ error }) => {
+            if (error) {
+              console.error('Error al guardar orden en Supabase:', error.message)
+              return
+            }
+            registrarBitacora(
+              'ordenes_trabajo',
+              ordenId,
+              decision === 'aprobar' ? 'cierre_validado' : 'cierre_rechazado',
+              decision === 'aprobar' ? 'Cierre de orden validado' : `Cierre rechazado, regresa a ejecución: ${motivo}`,
+            )
+          },
+        )
+        if (!evidencia) return
+        const fechaAprobacion = new Date().toISOString()
+        setOrdenesEvidencia((prev) =>
+          prev.map((e) =>
+            e.id === evidencia.id
+              ? decision === 'aprobar'
+                ? { ...e, resultado: 'Aceptada', fechaAprobacion }
+                : { ...e, resultado: 'Rechazada', motivoRechazo: motivo ?? null, retrabajo: true }
+              : e,
+          ),
+        )
+        supabase
+          .from('ordenes_evidencia')
+          .update(
+            decision === 'aprobar'
+              ? { resultado: 'Aceptada', fecha_aprobacion: fechaAprobacion }
+              : { resultado: 'Rechazada', motivo_rechazo: motivo, retrabajo: true },
+          )
+          .eq('id', evidencia.id)
+          .then(({ error }) => {
+            if (error) console.error('Error al resolver evidencia en Supabase:', error.message)
+          })
+      },
 
       tareasOperativas,
       editarTarea: crearEditor(setTareasOverrides),
@@ -485,7 +733,21 @@ export function DataStoreProvider({ children }: { children: ReactNode }) {
       slaPromedioResolucionHoras: mantenimientoKpis.slaPromedioResolucionHoras(ordenesTrabajo),
       proyectoMayorEnCurso: mantenimientoKpis.proyectoMayorEnCurso(proyectosCapex),
     }
-  }, [naves, navesListas, documentos, contratos, renovaciones, ordenesTrabajo, tareasOperativas, proyectosCapex, alertas, tareasVivas])
+  }, [
+    naves,
+    navesListas,
+    documentos,
+    contratos,
+    renovaciones,
+    ordenesTrabajo,
+    ordenesPausas,
+    ordenesEvidencia,
+    tareasOperativas,
+    proyectosCapex,
+    alertas,
+    tareasVivas,
+    userId,
+  ])
 
   return <DataStoreContext.Provider value={value}>{children}</DataStoreContext.Provider>
 }

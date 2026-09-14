@@ -378,29 +378,29 @@ insert into sistemas_criticos_nave (id, nave_id, sistema_id, codigo_referencia, 
   ('SIS-0076', 'NAVE-19', 'SC-03', 'NOM-001-SEDE / NFPA-110', 'Generadores Continuidad Eléctrica', 84000, '2026-08-03', '2026-09-02', 'Arranque en Frío 100% · Óptimo', 'Óptimo', 'Prueba de arranque en frío bajo carga y cambio de aceite/filtros')
 on conflict (id) do nothing;
 
-insert into ordenes_trabajo (id, folio, nave_id, sistema_critico_id, categoria, descripcion, prioridad, sla_horas, contratista_id, costo_estimado, estatus, fecha_creacion, fecha_compromiso, fecha_cierre) values
-  ('OT-001', 'OT-2026-0001', 'NAVE-02', null, 'Cubiertas y Techos', 'Filtración activa en junta de dilatación, zona norte de la cubierta', 'Crítica', 4, 'CTA-04', 145000, 'Abierta', '2026-09-07', '2026-09-08', null),
-  ('OT-002', 'OT-2026-0002', 'NAVE-07', null, 'HVAC', 'Unidad manejadora #3 sin enfriamiento en zona de oficinas', 'Alta', 24, 'CTA-03', 62000, 'En Proceso', '2026-09-06', '2026-09-07', null),
-  ('OT-003', 'OT-2026-0003', 'NAVE-19', null, 'HVAC', 'Ruido excesivo y vibración en compresor principal de techo', 'Alta', 24, 'CTA-03', 48000, 'En Proceso', '2026-09-05', '2026-09-06', null),
-  ('OT-004', 'OT-2026-0004', 'NAVE-06', null, 'Contra Incendio / SCI', 'Presión estática por debajo de rango en red húmeda, ala este', 'Alta', 24, 'CTA-01', 88000, 'Abierta', '2026-09-07', '2026-09-08', null),
-  ('OT-005', 'OT-2026-0005', 'NAVE-11', null, 'Andenes & Rampas', 'Sello hidráulico dañado en niveladora del andén 6', 'Media', 48, 'CTA-06', 31000, 'Esperando Refacción', '2026-09-02', '2026-09-04', null),
-  ('OT-006', 'OT-2026-0006', 'NAVE-13', null, 'Eléctrico & Subestación', 'Disparo intermitente de interruptor principal de media tensión', 'Crítica', 4, 'CTA-02', 210000, 'Abierta', '2026-09-08', '2026-09-09', null),
-  ('OT-007', 'OT-2026-0007', 'NAVE-15', null, 'Pisos Industriales', 'Fisuras en losa de concreto por tráfico de montacargas, zona de picking', 'Media', 48, 'CTA-05', 54000, 'En Proceso', '2026-09-03', '2026-09-05', null),
-  ('OT-008', 'OT-2026-0008', 'NAVE-17', null, 'Cubiertas y Techos', 'Corrosión en canalones y bajantes pluviales', 'Media', 48, 'CTA-04', 39000, 'Abierta', '2026-09-04', '2026-09-06', null),
-  ('OT-009', 'OT-2026-0009', 'NAVE-09', null, 'Planta de Emergencia', 'Falla en arranque automático durante prueba mensual programada', 'Alta', 24, 'CTA-07', 76000, 'Esperando Refacción', '2026-08-31', '2026-09-01', null),
-  ('OT-010', 'OT-2026-0010', 'NAVE-04', null, 'Andenes & Rampas', 'Cortina de andén dañada por impacto de vehículo de carga', 'Baja', 72, 'CTA-06', 18000, 'En Proceso', '2026-09-05', '2026-09-08', null),
-  ('OT-011', 'OT-2026-0011', 'NAVE-10', null, 'Eléctrico & Subestación', 'Mantenimiento correctivo de banco de capacitores', 'Media', 48, 'CTA-02', 47000, 'Validado', '2026-08-17', '2026-08-19', '2026-08-21'),
-  ('OT-012', 'OT-2026-0012', 'NAVE-12', null, 'Contra Incendio / SCI', 'Recarga y certificación de extintores portátiles', 'Baja', 72, 'CTA-01', 12500, 'Validado', '2026-08-24', '2026-08-27', '2026-08-26'),
-  ('OT-013', 'OT-2026-0013', 'NAVE-16', null, 'HVAC', 'Cambio de banco de filtros HEPA en área de calidad', 'Baja', 72, 'CTA-03', 21000, 'Validado', '2026-08-21', '2026-08-24', '2026-08-24'),
-  ('OT-014', 'OT-2026-0014', 'NAVE-08', null, 'Cubiertas y Techos', 'Inspección de membrana pre-temporada de lluvias', 'Media', 48, 'CTA-04', 33000, 'Validado', '2026-08-13', '2026-08-15', '2026-08-18'),
-  ('OT-015', 'OT-2026-0015', 'NAVE-18', null, 'Andenes & Rampas', 'Ajuste de topes y luces de cortesía en 4 andenes', 'Baja', 72, 'CTA-06', 9800, 'Validado', '2026-08-27', '2026-08-30', '2026-08-29'),
-  ('OT-016', 'OT-2026-0016', 'NAVE-14', null, 'Eléctrico & Subestación', 'Termografía correctiva tras alarma de sobrecalentamiento', 'Alta', 24, 'CTA-02', 58000, 'En Proceso', '2026-09-06', '2026-09-07', null),
-  ('OT-017', 'OT-2026-0017', 'NAVE-03', null, 'Pisos Industriales', 'Resane de junta de expansión en pasillo principal', 'Baja', 72, 'CTA-05', 15500, 'Abierta', '2026-09-06', '2026-09-09', null),
-  ('OT-018', 'OT-2026-0018', 'NAVE-05', null, 'Contra Incendio / SCI', 'Sustitución de rociadores obstruidos en racks nivel 3', 'Crítica', 4, 'CTA-01', 67000, 'Abierta', '2026-09-08', '2026-09-09', null),
-  ('OT-019', 'OT-2026-0019', 'NAVE-01', null, 'HVAC', 'Mantenimiento correctivo menor de unidad de precisión en MDF', 'Media', 48, 'CTA-03', 24000, 'Validado', '2026-08-19', '2026-08-21', '2026-08-22'),
-  ('OT-020', 'OT-2026-0020', 'NAVE-06', null, 'Sanidad Operativa', 'Fumigación correctiva por hallazgo de plaga en zona de tarimas', 'Alta', 24, 'CTA-09', 14200, 'Validado', '2026-08-30', '2026-08-31', '2026-08-31'),
-  ('OT-021', 'OT-2026-0021', 'NAVE-16', null, 'Andenes & Rampas', 'Reemplazo de sello de cortina de andén 2, trabajo concluido en sitio', 'Media', 48, 'CTA-06', 22500, 'Pendiente de Evidencia', '2026-09-04', '2026-09-06', null),
-  ('OT-022', 'OT-2026-0022', 'NAVE-08', null, 'HVAC', 'Reporte duplicado — ya cubierto por la orden de inspección de cubierta en curso', 'Baja', 72, 'CTA-03', 0, 'Cancelada', '2026-09-02', '2026-09-05', '2026-09-03')
+insert into ordenes_trabajo (id, folio, nave_id, sistema_critico_id, categoria, descripcion, prioridad, sla_horas, contratista_id, costo_estimado, estatus, motivo_cancelacion, fecha_creacion, fecha_compromiso, fecha_cierre) values
+  ('OT-001', 'OT-2026-0001', 'NAVE-02', null, 'Cubiertas y Techos', 'Filtración activa en junta de dilatación, zona norte de la cubierta', 'Crítica', 4, 'CTA-04', 145000, 'Abierta', null, '2026-09-07', '2026-09-08', null),
+  ('OT-002', 'OT-2026-0002', 'NAVE-07', null, 'HVAC', 'Unidad manejadora #3 sin enfriamiento en zona de oficinas', 'Alta', 24, 'CTA-03', 62000, 'En ejecución', null, '2026-09-06', '2026-09-07', null),
+  ('OT-003', 'OT-2026-0003', 'NAVE-19', null, 'HVAC', 'Ruido excesivo y vibración en compresor principal de techo', 'Alta', 24, 'CTA-03', 48000, 'En ejecución', null, '2026-09-05', '2026-09-06', null),
+  ('OT-004', 'OT-2026-0004', 'NAVE-06', null, 'Contra Incendio / SCI', 'Presión estática por debajo de rango en red húmeda, ala este', 'Alta', 24, 'CTA-01', 88000, 'Abierta', null, '2026-09-07', '2026-09-08', null),
+  ('OT-005', 'OT-2026-0005', 'NAVE-11', null, 'Andenes & Rampas', 'Sello hidráulico dañado en niveladora del andén 6', 'Media', 48, 'CTA-06', 31000, 'Esperando Refacción', null, '2026-09-02', '2026-09-04', null),
+  ('OT-006', 'OT-2026-0006', 'NAVE-13', null, 'Eléctrico & Subestación', 'Disparo intermitente de interruptor principal de media tensión', 'Crítica', 4, 'CTA-02', 210000, 'Abierta', null, '2026-09-08', '2026-09-09', null),
+  ('OT-007', 'OT-2026-0007', 'NAVE-15', null, 'Pisos Industriales', 'Fisuras en losa de concreto por tráfico de montacargas, zona de picking', 'Media', 48, 'CTA-05', 54000, 'En ejecución', null, '2026-09-03', '2026-09-05', null),
+  ('OT-008', 'OT-2026-0008', 'NAVE-17', null, 'Cubiertas y Techos', 'Corrosión en canalones y bajantes pluviales', 'Media', 48, 'CTA-04', 39000, 'Abierta', null, '2026-09-04', '2026-09-06', null),
+  ('OT-009', 'OT-2026-0009', 'NAVE-09', null, 'Planta de Emergencia', 'Falla en arranque automático durante prueba mensual programada', 'Alta', 24, 'CTA-07', 76000, 'Esperando Refacción', null, '2026-08-31', '2026-09-01', null),
+  ('OT-010', 'OT-2026-0010', 'NAVE-04', null, 'Andenes & Rampas', 'Cortina de andén dañada por impacto de vehículo de carga', 'Baja', 72, 'CTA-06', 18000, 'En ejecución', null, '2026-09-05', '2026-09-08', null),
+  ('OT-011', 'OT-2026-0011', 'NAVE-10', null, 'Eléctrico & Subestación', 'Mantenimiento correctivo de banco de capacitores', 'Media', 48, 'CTA-02', 47000, 'Validado', null, '2026-08-17', '2026-08-19', '2026-08-21'),
+  ('OT-012', 'OT-2026-0012', 'NAVE-12', null, 'Contra Incendio / SCI', 'Recarga y certificación de extintores portátiles', 'Baja', 72, 'CTA-01', 12500, 'Validado', null, '2026-08-24', '2026-08-27', '2026-08-26'),
+  ('OT-013', 'OT-2026-0013', 'NAVE-16', null, 'HVAC', 'Cambio de banco de filtros HEPA en área de calidad', 'Baja', 72, 'CTA-03', 21000, 'Validado', null, '2026-08-21', '2026-08-24', '2026-08-24'),
+  ('OT-014', 'OT-2026-0014', 'NAVE-08', null, 'Cubiertas y Techos', 'Inspección de membrana pre-temporada de lluvias', 'Media', 48, 'CTA-04', 33000, 'Validado', null, '2026-08-13', '2026-08-15', '2026-08-18'),
+  ('OT-015', 'OT-2026-0015', 'NAVE-18', null, 'Andenes & Rampas', 'Ajuste de topes y luces de cortesía en 4 andenes', 'Baja', 72, 'CTA-06', 9800, 'Validado', null, '2026-08-27', '2026-08-30', '2026-08-29'),
+  ('OT-016', 'OT-2026-0016', 'NAVE-14', null, 'Eléctrico & Subestación', 'Termografía correctiva tras alarma de sobrecalentamiento', 'Alta', 24, 'CTA-02', 58000, 'En ejecución', null, '2026-09-06', '2026-09-07', null),
+  ('OT-017', 'OT-2026-0017', 'NAVE-03', null, 'Pisos Industriales', 'Resane de junta de expansión en pasillo principal', 'Baja', 72, 'CTA-05', 15500, 'Abierta', null, '2026-09-06', '2026-09-09', null),
+  ('OT-018', 'OT-2026-0018', 'NAVE-05', null, 'Contra Incendio / SCI', 'Sustitución de rociadores obstruidos en racks nivel 3', 'Crítica', 4, 'CTA-01', 67000, 'Abierta', null, '2026-09-08', '2026-09-09', null),
+  ('OT-019', 'OT-2026-0019', 'NAVE-01', null, 'HVAC', 'Mantenimiento correctivo menor de unidad de precisión en MDF', 'Media', 48, 'CTA-03', 24000, 'Validado', null, '2026-08-19', '2026-08-21', '2026-08-22'),
+  ('OT-020', 'OT-2026-0020', 'NAVE-06', null, 'Sanidad Operativa', 'Fumigación correctiva por hallazgo de plaga en zona de tarimas', 'Alta', 24, 'CTA-09', 14200, 'Validado', null, '2026-08-30', '2026-08-31', '2026-08-31'),
+  ('OT-021', 'OT-2026-0021', 'NAVE-16', null, 'Andenes & Rampas', 'Reemplazo de sello de cortina de andén 2, trabajo concluido en sitio', 'Media', 48, 'CTA-06', 22500, 'Pendiente de Evidencia', null, '2026-09-04', '2026-09-06', null),
+  ('OT-022', 'OT-2026-0022', 'NAVE-08', null, 'HVAC', 'Reporte duplicado — ya cubierto por la orden de inspección de cubierta en curso', 'Baja', 72, 'CTA-03', 0, 'Cancelada', 'Reporte duplicado — ya cubierto por la orden de inspección de cubierta en curso', '2026-09-02', '2026-09-05', '2026-09-03')
 on conflict (id) do nothing;
 
 insert into tareas_operativas (id, categoria, titulo, nave_id, responsable, columna, costo_estimado, avance_pct, cotizaciones_recibidas, sla_restante_horas) values

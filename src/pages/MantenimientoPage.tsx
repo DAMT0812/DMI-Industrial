@@ -26,7 +26,6 @@ import {
   SLA_META_HORAS,
   type OrdenTrabajo,
 } from '@/data'
-import { HOY } from '@/lib/dates'
 import { formatMoneda, formatPct } from '@/lib/format'
 
 export function MantenimientoPage() {
@@ -40,14 +39,13 @@ export function MantenimientoPage() {
     capexAutorizadoAnio,
     capexProyectosMayores,
     slaPromedioResolucionHoras,
-    editarOrden,
+    resolverEvidenciaCierre,
   } = useDataStore()
   const naveProyecto = proyectoMayor ? naveById(proyectoMayor.naveId) : null
   const parqueProyecto = naveProyecto ? parqueById(naveProyecto.parqueId) : null
 
-  // Interacción ligera de la maqueta (sin persistir entre sesiones): cambia el
-  // estado real de la orden vía DataStoreContext cuando el Facility Manager
-  // valida o rechaza el cierre de una orden en "Pendiente de Evidencia" — el
+  // Facility Manager valida o rechaza la evidencia de cierre de una orden en "Pendiente
+  // de Evidencia" — persiste de verdad en la tabla ordenes_evidencia (Fase 6h) y el
   // cambio se refleja en todas las pantallas que lean esta misma orden.
   const [otParaValidar, setOtParaValidar] = useState<OrdenTrabajo | null>(null)
   const [otParaEditar, setOtParaEditar] = useState<OrdenTrabajo | null>(null)
@@ -286,8 +284,8 @@ export function MantenimientoPage() {
         descripcion={otParaValidar ? `${otParaValidar.categoria} — ${otParaValidar.descripcion}` : undefined}
         etiquetaAprobar="Validar y Cerrar"
         etiquetaRechazar="Rechazar Cierre"
-        onAprobar={() => otParaValidar && editarOrden(otParaValidar.id, { estatus: 'Validado', fechaCierre: HOY.toISOString().slice(0, 10) })}
-        onRechazar={() => otParaValidar && editarOrden(otParaValidar.id, { estatus: 'En ejecución' })}
+        onAprobar={() => otParaValidar && resolverEvidenciaCierre(otParaValidar.id, 'aprobar')}
+        onRechazar={(motivo) => otParaValidar && resolverEvidenciaCierre(otParaValidar.id, 'rechazar', motivo)}
       />
 
       {otParaEditar && <EditarOrdenDialog open={otParaEditar !== null} onOpenChange={(open) => !open && setOtParaEditar(null)} orden={otParaEditar} />}

@@ -21,6 +21,7 @@ interface Seed {
   estatus: OrdenTrabajo['estatus']
   creadaHaceDias: number
   cierraEnDias?: number // si aplica, define fechaCierre relativa a creación
+  motivoCancelacion?: string // solo si estatus es 'Cancelada'
 }
 
 const seeds: Seed[] = [
@@ -45,7 +46,7 @@ const seeds: Seed[] = [
   { naveId: 'NAVE-01', sistemaCriticoId: null, categoria: 'HVAC', descripcion: 'Mantenimiento correctivo menor de unidad de precisión en MDF', prioridad: 'Media', contratistaId: 'CTA-03', costoEstimado: 24_000, estatus: 'Validado', creadaHaceDias: 20, cierraEnDias: 3 },
   { naveId: 'NAVE-06', sistemaCriticoId: null, categoria: 'Sanidad Operativa', descripcion: 'Fumigación correctiva por hallazgo de plaga en zona de tarimas', prioridad: 'Alta', contratistaId: 'CTA-09', costoEstimado: 14_200, estatus: 'Validado', creadaHaceDias: 9, cierraEnDias: 1 },
   { naveId: 'NAVE-16', sistemaCriticoId: null, categoria: 'Andenes & Rampas', descripcion: 'Reemplazo de sello de cortina de andén 2, trabajo concluido en sitio', prioridad: 'Media', contratistaId: 'CTA-06', costoEstimado: 22_500, estatus: 'Pendiente de Evidencia', creadaHaceDias: 4 },
-  { naveId: 'NAVE-08', sistemaCriticoId: null, categoria: 'HVAC', descripcion: 'Reporte duplicado — ya cubierto por la orden de inspección de cubierta en curso', prioridad: 'Baja', contratistaId: 'CTA-03', costoEstimado: 0, estatus: 'Cancelada', creadaHaceDias: 6, cierraEnDias: 1 },
+  { naveId: 'NAVE-08', sistemaCriticoId: null, categoria: 'HVAC', descripcion: 'Reporte duplicado — ya cubierto por la orden de inspección de cubierta en curso', prioridad: 'Baja', contratistaId: 'CTA-03', costoEstimado: 0, estatus: 'Cancelada', creadaHaceDias: 6, cierraEnDias: 1, motivoCancelacion: 'Reporte duplicado — ya cubierto por la orden de inspección de cubierta en curso' },
 ]
 
 export const ordenesTrabajo: OrdenTrabajo[] = seeds.map((s, idx) => {
@@ -68,6 +69,7 @@ export const ordenesTrabajo: OrdenTrabajo[] = seeds.map((s, idx) => {
     fechaCreacion,
     fechaCompromiso,
     fechaCierre,
+    motivoCancelacion: s.motivoCancelacion ?? null,
   } satisfies OrdenTrabajo
 })
 

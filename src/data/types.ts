@@ -236,6 +236,34 @@ export interface OrdenTrabajo {
   fechaCreacion: string
   fechaCompromiso: string
   fechaCierre: string | null
+  motivoCancelacion: string | null
+}
+
+// Ventana de pausa de una orden (p. ej. "Esperando Refacción") — fin null mientras sigue
+// pausada. Independiente del estatus de la orden, que solo refleja el estado actual.
+export interface PausaOrden {
+  id: string
+  ordenId: string
+  inicio: string
+  fin: string | null
+  motivo: string | null
+}
+
+export type ResultadoEvidencia = 'Pendiente' | 'Aceptada' | 'Rechazada'
+
+// Evidencia de cierre subida por el Facility Manager al enviar una orden a validación;
+// Facility Manager (mismo rol, ve la calidad del trabajo antes de cerrar) la acepta o
+// rechaza — un rechazo regresa la orden a "En ejecución" para retrabajo.
+export interface EvidenciaOrden {
+  id: string
+  ordenId: string
+  archivoPath: string | null
+  fecha: string
+  resultado: ResultadoEvidencia
+  motivoRechazo: string | null
+  retrabajo: boolean | null
+  fechaAprobacion: string | null
+  comentario: string | null
 }
 
 export interface Contratista {

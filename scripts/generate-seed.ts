@@ -63,14 +63,6 @@ function insertStatement(table: string, columns: string[], rows: string[][]): st
 // documentos.ts ya emite el vocabulario real de estatus (Fase 6d) — no hace falta
 // mapeo aquí, se usa d.estatusJuridico directamente.
 const TIPOS_DOCUMENTO_SIN_VIGENCIA = new Set(['Licencia de Construcción', 'Manifestación de Impacto Ambiental', 'Memoria de Cálculo Estructural'])
-const ESTATUS_ORDEN_A_ESTATUS: Record<string, string> = {
-  Abierta: 'Abierta',
-  'En ejecución': 'En Proceso',
-  'Esperando Refacción': 'Esperando Refacción',
-  'Pendiente de Evidencia': 'Pendiente de Evidencia',
-  Validado: 'Validado',
-  Cancelada: 'Cancelada',
-}
 const TIPO_SISTEMA_A_CATALOGO: Record<string, string> = {
   'Sistema Contra Incendio (SCI)': 'SC-01',
   'Subestación Eléctrica': 'SC-02',
@@ -242,12 +234,12 @@ lines.push(
     'ordenes_trabajo',
     [
       'id', 'folio', 'nave_id', 'sistema_critico_id', 'categoria', 'descripcion', 'prioridad', 'sla_horas',
-      'contratista_id', 'costo_estimado', 'estatus', 'fecha_creacion', 'fecha_compromiso', 'fecha_cierre',
+      'contratista_id', 'costo_estimado', 'estatus', 'motivo_cancelacion', 'fecha_creacion', 'fecha_compromiso', 'fecha_cierre',
     ],
     ordenesTrabajo.map((o) => [
       sqlStr(o.id), sqlStr(o.folio), sqlStr(o.naveId), sqlStr(o.sistemaCriticoId), sqlStr(o.categoria),
       sqlStr(o.descripcion), sqlStr(o.prioridad), sqlNum(o.slaHoras), sqlStr(o.contratistaId), sqlNum(o.costoEstimado),
-      sqlStr(ESTATUS_ORDEN_A_ESTATUS[o.estatus] ?? o.estatus), sqlStr(o.fechaCreacion), sqlStr(o.fechaCompromiso), sqlStr(o.fechaCierre),
+      sqlStr(o.estatus), sqlStr(o.motivoCancelacion), sqlStr(o.fechaCreacion), sqlStr(o.fechaCompromiso), sqlStr(o.fechaCierre),
     ])
   )
 )
