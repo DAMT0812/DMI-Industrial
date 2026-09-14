@@ -11,6 +11,7 @@ import { MantenimientoPage } from '@/pages/MantenimientoPage'
 import { TareasCapexPage } from '@/pages/TareasCapexPage'
 import { ExpedienteNavePage } from '@/pages/ExpedienteNavePage'
 import { AdminUsuariosPage } from '@/pages/AdminUsuariosPage'
+import { BitacoraPage } from '@/pages/BitacoraPage'
 
 function AuthGate({ children }: { children: ReactNode }) {
   const { session, profile, loading, signOut } = useAuth()
@@ -61,6 +62,7 @@ function App() {
                     <Route path="tareas-capex" element={<TareasCapexPage />} />
                     <Route path="naves/:naveId" element={<ExpedienteNavePage />} />
                     <Route path="admin/usuarios" element={<AdminUsuariosPage />} />
+                    <Route path="bitacora" element={<BitacoraPage />} />
                   </Route>
                 </Routes>
               </BrowserRouter>

@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useMemo, useState, type Dispatch, type ReactNode, type SetStateAction } from 'react'
 import type { ContratoArrendamiento, DocumentoPermiso, Nave, OrdenTrabajo, ProyectoCapex, TareaOperativa } from '@/data/types'
 import { supabase } from '@/lib/supabaseClient'
+import { registrarBitacora } from '@/lib/bitacora'
 import { naves as navesBase, naveById as naveByIdBase } from '@/data/naves'
 import { documentosPorNave as documentosPorNaveBase } from '@/data/documentos'
 import { contratos as contratosBase, contratoPorNaveId as contratoPorNaveIdBase } from '@/data/contratos'
@@ -96,6 +97,17 @@ function documentoDeFila(fila: Record<string, unknown>): DocumentoPermiso {
   }
 }
 
+function describirCambiosDocumento(cambios: Partial<DocumentoPermiso>): string {
+  const partes: string[] = []
+  if (cambios.archivoPath !== undefined) partes.push('archivo reemplazado')
+  if (cambios.estatusJuridico !== undefined) partes.push(`estatus → ${cambios.estatusJuridico}`)
+  if (cambios.numeroFolio !== undefined) partes.push(`folio → ${cambios.numeroFolio}`)
+  if (cambios.dependenciaEmisora !== undefined) partes.push('dependencia emisora actualizada')
+  if (cambios.fechaEmision !== undefined) partes.push('fecha de emisión actualizada')
+  if (cambios.fechaVencimiento !== undefined) partes.push('fecha de vencimiento actualizada')
+  return partes.length ? `Documento actualizado: ${partes.join(', ')}` : 'Documento actualizado'
+}
+
 function documentoAFila(cambios: Partial<DocumentoPermiso>): Record<string, unknown> {
   const fila: Record<string, unknown> = {}
   if (cambios.dependenciaEmisora !== undefined) fila.dependencia_emisora = cambios.dependenciaEmisora
@@ -163,7 +175,11 @@ export function DataStoreProvider({ children }: { children: ReactNode }) {
           .update(documentoAFila(cambios))
           .eq('id', id)
           .then(({ error }) => {
-            if (error) console.error('Error al guardar documento en Supabase:', error.message)
+            if (error) {
+              console.error('Error al guardar documento en Supabase:', error.message)
+              return
+            }
+            registrarBitacora('documentos', id, cambios.archivoPath !== undefined ? 'archivo_reemplazado' : 'edicion', describirCambiosDocumento(cambios))
           })
       },
 

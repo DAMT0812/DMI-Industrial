@@ -30,3 +30,7 @@ export const puedeEditarTarea = (rol: Rol) => rol === 'Property Manager' || rol 
 export const puedeEditarCapex = (rol: Rol) => rol === 'Property Manager' || rol === 'Facility Manager'
 
 export const esAdministrador = (rol: Rol) => rol === 'Administrador del Sistema'
+
+// Bitácora de auditoría: solo quienes supervisan el sistema en conjunto, no quienes
+// operan un ámbito específico (4.6 — visibilidad transversal reservada a Dirección/Admin).
+export const puedeVerBitacora = (rol: Rol) => rol === 'Administrador del Sistema' || rol === 'Dirección'

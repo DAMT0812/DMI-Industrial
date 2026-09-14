@@ -5,6 +5,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { supabase } from '@/lib/supabaseClient'
 import { useAuth, type ProfileRow } from '@/context/AuthContext'
 import { esAdministrador } from '@/lib/permissions'
+import { registrarBitacora } from '@/lib/bitacora'
 import type { Region } from '@/data'
 
 const ROLES: ProfileRow['rol'][] = ['Property Manager', 'Facility Manager', 'Dirección', 'Contabilidad', 'Administrador del Sistema']
@@ -49,7 +50,8 @@ export function AdminUsuariosPage() {
 
   async function guardar(id: string) {
     const edicion = ediciones[id]
-    if (!edicion) return
+    const anterior = usuarios?.find((u) => u.id === id)
+    if (!edicion || !anterior) return
     setGuardandoId(id)
     const acceso_total = edicion.region === 'todas'
     const ambito_regiones = acceso_total ? [] : [edicion.region as Region]
@@ -59,6 +61,11 @@ export function AdminUsuariosPage() {
       .eq('id', id)
     if (!error) {
       setUsuarios((prev) => prev?.map((u) => (u.id === id ? { ...u, rol: edicion.rol, acceso_total, ambito_regiones, activo: edicion.activo } : u)) ?? null)
+      const cambios: string[] = []
+      if (anterior.rol !== edicion.rol) cambios.push(`rol: ${anterior.rol} → ${edicion.rol}`)
+      if (regionDeFila(anterior) !== edicion.region) cambios.push(`ámbito: ${regionDeFila(anterior)} → ${edicion.region}`)
+      if (anterior.activo !== edicion.activo) cambios.push(edicion.activo ? 'cuenta reactivada' : 'cuenta desactivada')
+      if (cambios.length) registrarBitacora('profiles', id, 'edicion_usuario', `${anterior.nombre}: ${cambios.join(', ')}`)
     }
     setGuardandoId(null)
   }

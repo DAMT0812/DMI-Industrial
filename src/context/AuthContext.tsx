@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
 import type { Session } from '@supabase/supabase-js'
 import { supabase } from '@/lib/supabaseClient'
+import { registrarBitacora } from '@/lib/bitacora'
 import type { Region } from '@/data'
 
 export interface ProfileRow {
@@ -97,7 +98,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         : PERFIL_CARGANDO,
       loading,
       signIn: async (correo, password) => {
-        const { error } = await supabase.auth.signInWithPassword({ email: correo, password })
+        const { data, error } = await supabase.auth.signInWithPassword({ email: correo, password })
+        if (!error && data.user) registrarBitacora('auth', data.user.id, 'login', `Inicio de sesión: ${correo}`)
         return { error: error?.message ?? null }
       },
       signUp: async (correo, password, nombre) => {
@@ -105,6 +107,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return { error: error?.message ?? null, necesitaConfirmacion: !error && !data.session }
       },
       signOut: async () => {
+        if (session) registrarBitacora('auth', session.user.id, 'logout', 'Cierre de sesión')
         await supabase.auth.signOut()
       },
     }),
