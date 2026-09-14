@@ -41,6 +41,10 @@ interface AuthState {
   loading: boolean
   signIn: (correo: string, password: string) => Promise<{ error: string | null }>
   signUp: (correo: string, password: string, nombre: string) => Promise<{ error: string | null; necesitaConfirmacion: boolean }>
+  // SSO con Microsoft Entra ID (Fase 6l) — el App Registration del tenant grupodmi.com.mx
+  // es de un solo inquilino, así que Microsoft ya rechaza cualquier cuenta fuera de ese
+  // dominio antes de llegar aquí; no hace falta repetir esa validación en el cliente.
+  signInWithAzure: () => Promise<{ error: string | null }>
   signOut: () => Promise<void>
 }
 
@@ -59,11 +63,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (!data.session) setLoading(false)
     })
 
-    const { data: subscription } = supabase.auth.onAuthStateChange((_event, nuevaSesion) => {
+    const { data: subscription } = supabase.auth.onAuthStateChange((event, nuevaSesion) => {
       setSession(nuevaSesion)
       if (!nuevaSesion) {
         setProfile(null)
         setLoading(false)
+      }
+      // Único punto de registro de inicio de sesión: cubre tanto correo/contraseña como
+      // el redirect de vuelta de Microsoft Entra ID (SSO), que no pasa por signIn().
+      if (event === 'SIGNED_IN' && nuevaSesion) {
+        registrarBitacora('auth', nuevaSesion.user.id, 'login', `Inicio de sesión: ${nuevaSesion.user.email ?? nuevaSesion.user.id}`)
       }
     })
 
@@ -98,13 +107,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         : PERFIL_CARGANDO,
       loading,
       signIn: async (correo, password) => {
-        const { data, error } = await supabase.auth.signInWithPassword({ email: correo, password })
-        if (!error && data.user) registrarBitacora('auth', data.user.id, 'login', `Inicio de sesión: ${correo}`)
+        const { error } = await supabase.auth.signInWithPassword({ email: correo, password })
         return { error: error?.message ?? null }
       },
       signUp: async (correo, password, nombre) => {
         const { data, error } = await supabase.auth.signUp({ email: correo, password, options: { data: { nombre } } })
         return { error: error?.message ?? null, necesitaConfirmacion: !error && !data.session }
+      },
+      signInWithAzure: async () => {
+        const { error } = await supabase.auth.signInWithOAuth({
+          provider: 'azure',
+          options: { scopes: 'openid profile email', redirectTo: window.location.origin },
+        })
+        return { error: error?.message ?? null }
       },
       signOut: async () => {
         if (session) registrarBitacora('auth', session.user.id, 'logout', 'Cierre de sesión')

@@ -5,8 +5,19 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useAuth } from '@/context/AuthContext'
 
+function MicrosoftLogo({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 21 21" className={className} aria-hidden="true">
+      <rect x="1" y="1" width="9" height="9" fill="#f25022" />
+      <rect x="11" y="1" width="9" height="9" fill="#7fba00" />
+      <rect x="1" y="11" width="9" height="9" fill="#00a4ef" />
+      <rect x="11" y="11" width="9" height="9" fill="#ffb900" />
+    </svg>
+  )
+}
+
 export function LoginPage() {
-  const { signIn, signUp } = useAuth()
+  const { signIn, signUp, signInWithAzure } = useAuth()
   const [modo, setModo] = useState<'entrar' | 'crear'>('entrar')
   const [nombre, setNombre] = useState('')
   const [correo, setCorreo] = useState('')
@@ -14,6 +25,19 @@ export function LoginPage() {
   const [error, setError] = useState<string | null>(null)
   const [aviso, setAviso] = useState<string | null>(null)
   const [enviando, setEnviando] = useState(false)
+  const [redirigiendoAzure, setRedirigiendoAzure] = useState(false)
+
+  async function onAzureClick() {
+    setError(null)
+    setRedirigiendoAzure(true)
+    // signInWithOAuth redirige la pestaña completa a Microsoft si tiene éxito, así que
+    // esta promesa solo resuelve con datos cuando algo salió mal antes de redirigir.
+    const { error } = await signInWithAzure()
+    if (error) {
+      setError(error)
+      setRedirigiendoAzure(false)
+    }
+  }
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault()
@@ -52,8 +76,30 @@ export function LoginPage() {
 
         <h1 className="text-center text-headline-sm text-foreground">{modo === 'entrar' ? 'Inicia sesión' : 'Crear cuenta interna'}</h1>
         <p className="mt-1 mb-5 text-center text-xs text-muted-foreground">
-          Acceso temporal por correo y contraseña. Próximamente inicio de sesión único con tu cuenta @grupodmi.com.mx.
+          {modo === 'entrar'
+            ? 'Usa tu cuenta @grupodmi.com.mx, o entra con correo y contraseña.'
+            : 'Acceso temporal por correo y contraseña mientras se activa el inicio de sesión único.'}
         </p>
+
+        {modo === 'entrar' && (
+          <>
+            <Button
+              type="button"
+              variant="outline"
+              className="mb-4 w-full gap-2"
+              disabled={redirigiendoAzure}
+              onClick={() => void onAzureClick()}
+            >
+              <MicrosoftLogo className="h-4 w-4" />
+              {redirigiendoAzure ? 'Redirigiendo a Microsoft…' : 'Iniciar sesión con Microsoft'}
+            </Button>
+            <div className="mb-4 flex items-center gap-3 text-[11px] text-muted-foreground">
+              <div className="h-px flex-1 bg-border" />
+              o con correo y contraseña
+              <div className="h-px flex-1 bg-border" />
+            </div>
+          </>
+        )}
 
         <form onSubmit={onSubmit} className="flex flex-col gap-3">
           {modo === 'crear' && (
