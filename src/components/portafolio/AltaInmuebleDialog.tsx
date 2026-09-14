@@ -5,6 +5,7 @@ import { Label } from '@/components/ui/label'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog'
 import { useDataStore } from '@/context/DataStoreContext'
 import { parques, type Nave, type EstatusOperativo } from '@/data'
+import { derivarCamposNave } from '@/lib/naveDefaults'
 
 const TIPOS_PROPIEDAD: Nave['tipoPropiedad'][] = ['Nave Industrial', 'Bodega Logística', 'Terreno', 'Nave BTS']
 const CLASES_ACTIVO: Nave['claseActivo'][] = ['Clase A', 'Clase B']
@@ -186,14 +187,7 @@ export function AltaInmuebleDialog({
     } else {
       const nave: Nave = {
         id: `NAVE-NEW-${Date.now()}`,
-        bahiaColumnas: '12m x 24m',
-        usoDeSuelo: form.tipoPropiedad === 'Bodega Logística' ? 'I-1 Industria Ligera y de Riesgo Bajo (Uso Logístico)' : 'I-2 Industria Mediana e Intensiva',
-        sistemaConstructivo:
-          form.claseActivo === 'Clase A'
-            ? 'Estructura metálica prefabricada, muros de block y panel aislante, cubierta tipo sándwich'
-            : 'Estructura metálica, muros de block, cubierta galvanizada',
-        numeroCajonesEstacionamiento: Math.round(Number(form.gla) / 180) + Math.round(Number(form.areaOficinas) / 20),
-        tipoIluminacion: 'LED de alta eficiencia en nave y oficinas',
+        ...derivarCamposNave(campos),
         ocupada: false,
         fechaEntrega: new Date().toISOString().slice(0, 10),
         ...campos,

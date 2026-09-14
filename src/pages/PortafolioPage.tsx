@@ -1,4 +1,4 @@
-import { Award, Building2, DollarSign, Download, Gauge, Percent, PlusCircle, ShieldCheck } from 'lucide-react'
+import { Award, Building2, DollarSign, Download, FileUp, Gauge, Percent, PlusCircle, ShieldCheck } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { KpiCard } from '@/components/shared/KpiCard'
@@ -7,6 +7,7 @@ import { NoiLineChart } from '@/components/portafolio/NoiLineChart'
 import { IndustriaDonutChart } from '@/components/portafolio/IndustriaDonutChart'
 import { DirectorioNavesTable } from '@/components/portafolio/DirectorioNavesTable'
 import { AltaInmuebleDialog } from '@/components/portafolio/AltaInmuebleDialog'
+import { ImportarNavesDialog } from '@/components/portafolio/ImportarNavesDialog'
 import { PillToggle } from '@/components/shared/ToggleGroup'
 import { usePreferences } from '@/context/PreferencesContext'
 import { useDataStore } from '@/context/DataStoreContext'
@@ -23,6 +24,7 @@ export function PortafolioPage() {
   const { perfilActivo } = useAuth()
   const [periodo, setPeriodo] = useState<(typeof PERIODOS)[number]>('T3 2026')
   const [altaAbierta, setAltaAbierta] = useState(false)
+  const [importarAbierta, setImportarAbierta] = useState(false)
   const {
     alertas,
     requerimientosCriticos,
@@ -63,10 +65,16 @@ export function PortafolioPage() {
             Exportar Reporte CapEx/NOI
           </Button>
           {puedeAltaNave(perfilActivo.rol) && (
-            <Button className="gap-1.5" onClick={() => setAltaAbierta(true)}>
-              <PlusCircle className="h-4 w-4" />
-              Alta de Inmueble
-            </Button>
+            <>
+              <Button variant="outline" className="gap-1.5" onClick={() => setImportarAbierta(true)}>
+                <FileUp className="h-4 w-4" />
+                Importar desde Excel
+              </Button>
+              <Button className="gap-1.5" onClick={() => setAltaAbierta(true)}>
+                <PlusCircle className="h-4 w-4" />
+                Alta de Inmueble
+              </Button>
+            </>
           )}
         </div>
       </div>
@@ -165,6 +173,7 @@ export function PortafolioPage() {
       </div>
 
       <AltaInmuebleDialog open={altaAbierta} onOpenChange={setAltaAbierta} />
+      <ImportarNavesDialog open={importarAbierta} onOpenChange={setImportarAbierta} />
     </div>
   )
 }
