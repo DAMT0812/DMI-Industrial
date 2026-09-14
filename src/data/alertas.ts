@@ -45,6 +45,8 @@ function alertasDePolizas(documentosInput: typeof documentos): AlertaVencimiento
       responsable: 'Lic. Andrés Villalpando — Coordinador Legal & Cumplimiento',
       accion: 'Subir Endoso',
       estatus: 'Pendiente',
+      entidadTipo: 'documento',
+      entidadId: d.id,
     }))
 }
 
@@ -65,6 +67,8 @@ function alertasDePredial(documentosInput: typeof documentos): AlertaVencimiento
       responsable: 'C.P. Renata Solís — Coordinadora de Cobranza CAM',
       accion: 'Liquidar en Tesorería',
       estatus: 'Pendiente',
+      entidadTipo: 'documento',
+      entidadId: d.id,
     }))
 }
 
@@ -86,6 +90,8 @@ function alertasDeProteccionCivil(documentosInput: typeof documentos): AlertaVen
       responsable: 'Ing. Tomás Guerrero — Facility Manager Regional Norte',
       accion: 'Ver Certificado PDF',
       estatus: 'Pendiente',
+      entidadTipo: 'documento',
+      entidadId: d.id,
     }))
 }
 
@@ -107,6 +113,8 @@ function alertasDeLicenciaAmbiental(documentosInput: typeof documentos): AlertaV
       responsable: 'Lic. Andrés Villalpando — Coordinador Legal & Cumplimiento',
       accion: 'Gestionar Renovación',
       estatus: 'Pendiente',
+      entidadTipo: 'documento',
+      entidadId: d.id,
     }))
 }
 
@@ -127,6 +135,8 @@ function alertasDeLeasing(contratosInput: typeof contratos): AlertaVencimiento[]
       responsable: 'Ing. Arq. Rodrigo M. — Director de Operaciones',
       accion: 'Abrir Negociación',
       estatus: 'Pendiente',
+      entidadTipo: 'contrato',
+      entidadId: c.id,
     }))
 }
 
@@ -145,6 +155,8 @@ function alertasDeSLA(ordenesInput: typeof ordenesTrabajo): AlertaVencimiento[] 
       responsable: 'Ing. Tomás Guerrero — Facility Manager Regional Norte',
       accion: 'Ver Orden de Trabajo',
       estatus: 'Pendiente',
+      entidadTipo: 'orden',
+      entidadId: o.id,
     }))
 }
 

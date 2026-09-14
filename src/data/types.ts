@@ -370,6 +370,28 @@ export interface AlertaVencimiento {
   responsable: string
   accion: string
   estatus: 'Pendiente' | 'Atendida'
+  // Entidad real detrás de la alerta (documento/contrato/orden) — identifica de forma
+  // estable el vencimiento para el disparo automático de notificaciones (90/60/30/15
+  // días), ya que `id` se regenera en cada cálculo y no sirve para deduplicar.
+  entidadTipo: 'documento' | 'contrato' | 'orden'
+  entidadId: string
+}
+
+// Notificación persistida (Fase 6j) — se dispara automáticamente cuando una alerta de
+// vencimiento cruza uno de los umbrales 90/60/30/15 días; se difunde a todos los
+// perfiles activos (equipo pequeño, sin mapeo real de "responsable" de la alerta a un
+// usuario del sistema). `entidadRelacionada` guarda `{entidadTipo}:{entidadId}:{umbral}`,
+// usado tanto para resolver la entidad de origen como para no duplicar el aviso.
+export type UrgenciaNotificacion = 'Programado' | 'Garantía Legal' | 'Crítico Inminente'
+
+export interface Notificacion {
+  id: string
+  tipo: string
+  destinatarioId: string | null
+  entidadRelacionada: string | null
+  urgencia: UrgenciaNotificacion | null
+  fechaGeneracion: string
+  leida: boolean
 }
 
 export interface Usuario {

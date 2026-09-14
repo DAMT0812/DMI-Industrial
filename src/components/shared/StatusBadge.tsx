@@ -43,10 +43,11 @@ const TONO_POR_ESTATUS: Record<string, Tono> = {
   'Pendiente 3ra Cotización': 'warning',
   'En Ejecución': 'info',
   Concluido: 'capex',
-  // Urgencia de alertas
+  // Urgencia de alertas / notificaciones
   'Crítico Inminente': 'critico',
   'Garantía Legal': 'warning',
   'En Cumplimiento': 'success',
+  Programado: 'info',
   // Contratos
   'Triple Net (NNN)': 'contrato',
   'Doble Neto (NN)': 'contrato',

@@ -1,4 +1,4 @@
-import { Bell, LogOut, Search } from 'lucide-react'
+import { LogOut, Search } from 'lucide-react'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import {
   DropdownMenu,
@@ -11,15 +11,13 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { PillToggle } from '@/components/shared/ToggleGroup'
 import { MobileSidebar } from '@/components/layout/Sidebar'
+import { NotificacionesMenu } from '@/components/layout/NotificacionesMenu'
 import { usePreferences } from '@/context/PreferencesContext'
-import { useDataStore } from '@/context/DataStoreContext'
 import { useAuth } from '@/context/AuthContext'
 
 export function Topbar() {
   const { moneda, setMoneda, unidad, setUnidad } = usePreferences()
-  const { alertas } = useDataStore()
   const { perfilActivo, signOut } = useAuth()
-  const notificacionesPendientes = alertas.filter((a) => a.estatus === 'Pendiente').length
 
   return (
     <header className="sticky top-0 z-20 flex h-16 shrink-0 items-center gap-3 border-b border-border bg-card/95 px-4 backdrop-blur sm:px-6">
@@ -54,16 +52,7 @@ export function Topbar() {
           />
         </div>
 
-        <button
-          type="button"
-          className="relative flex h-9 w-9 items-center justify-center rounded-md border border-border text-muted-foreground hover:bg-surface-secondary hover:text-foreground"
-          aria-label="Notificaciones"
-        >
-          <Bell className="h-4 w-4" />
-          {notificacionesPendientes > 0 && (
-            <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-status-danger ring-2 ring-card" />
-          )}
-        </button>
+        <NotificacionesMenu />
 
         <DropdownMenu>
           <DropdownMenuTrigger className="flex items-center gap-2.5 rounded-md py-1 pr-1 pl-2 hover:bg-surface-secondary">

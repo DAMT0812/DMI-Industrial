@@ -6,6 +6,7 @@ import type {
   EstadoRenovacion,
   EvidenciaOrden,
   Nave,
+  Notificacion,
   OrdenTrabajo,
   PausaOrden,
   ProyectoCapex,
@@ -87,6 +88,13 @@ interface DataStoreContextValue {
   resolverComiteCapex: (proyectoId: string, decision: 'aprobar' | 'rechazar', motivo?: string) => void
 
   perfilesPorId: Record<string, string>
+
+  // Notificaciones (Fase 6j): se disparan automáticamente cuando una alerta de
+  // vencimiento cruza 90/60/30/15 días, difundidas a todos los perfiles activos.
+  misNotificaciones: Notificacion[]
+  notificacionesNoLeidas: number
+  marcarNotificacionLeida: (id: string) => void
+  marcarTodasNotificacionesLeidas: () => void
 
   alertas: ReturnType<typeof calcularAlertas>
   tareasVivas: ReturnType<typeof calcularTareasVivas>
@@ -471,6 +479,31 @@ function votoCapexDeFila(fila: Record<string, unknown>): VotoCapex {
   }
 }
 
+function notificacionDeFila(fila: Record<string, unknown>): Notificacion {
+  return {
+    id: fila.id as string,
+    tipo: fila.tipo as string,
+    destinatarioId: (fila.destinatario_id as string | null) ?? null,
+    entidadRelacionada: (fila.entidad_relacionada as string | null) ?? null,
+    urgencia: (fila.urgencia as Notificacion['urgencia']) ?? null,
+    fechaGeneracion: fila.fecha_generacion as string,
+    leida: Boolean(fila.leida),
+  }
+}
+
+// Umbrales de vencimiento (días) que disparan una notificación automática — sección
+// 3/6.17 del prompt de referencia. No hay mapeo real entre el "responsable" de texto
+// libre de cada alerta y un usuario del sistema, así que se difunde a todos los perfiles
+// activos (equipo chico); `entidadRelacionada` codifica `{entidadTipo}:{entidadId}:
+// {umbral}` para no duplicar el aviso una vez generado.
+const UMBRALES_NOTIFICACION = [90, 60, 30, 15] as const
+
+function urgenciaPorUmbral(umbral: number): Notificacion['urgencia'] {
+  if (umbral <= 15) return 'Crítico Inminente'
+  if (umbral <= 30) return 'Garantía Legal'
+  return 'Programado'
+}
+
 function documentoDeFila(fila: Record<string, unknown>): DocumentoPermiso {
   return {
     id: fila.id as string,
@@ -523,6 +556,7 @@ export function DataStoreProvider({ children }: { children: ReactNode }) {
   const [capexCotizaciones, setCapexCotizaciones] = useState<CotizacionCapex[]>([])
   const [capexVotos, setCapexVotos] = useState<VotoCapex[]>([])
   const [perfilesPorId, setPerfilesPorId] = useState<Record<string, string>>({})
+  const [notificaciones, setNotificaciones] = useState<Notificacion[]>([])
 
   // RLS exige sesión autenticada para leer naves/documentos: se espera a que exista
   // sesión antes de pedirlas, y se vuelven a pedir en cada cambio de sesión (login,
@@ -544,6 +578,7 @@ export function DataStoreProvider({ children }: { children: ReactNode }) {
       setCapexCotizaciones([])
       setCapexVotos([])
       setPerfilesPorId({})
+      setNotificaciones([])
       return
     }
     supabase
@@ -619,10 +654,58 @@ export function DataStoreProvider({ children }: { children: ReactNode }) {
       .then(({ data }) => {
         if (data) setPerfilesPorId(Object.fromEntries((data as { id: string; nombre: string }[]).map((p) => [p.id, p.nombre])))
       })
+    supabase
+      .from('notificaciones')
+      .select('*')
+      .then(({ data }) => {
+        if (data) setNotificaciones(data.map(notificacionDeFila))
+      })
   }, [userId])
 
   const alertas = useMemo(() => calcularAlertas(documentos, contratos, ordenesTrabajo), [documentos, contratos, ordenesTrabajo])
   const tareasVivas = useMemo(() => calcularTareasVivas(ordenesTrabajo), [ordenesTrabajo])
+
+  // Disparo automático de notificaciones (Fase 6j): cuando una alerta de vencimiento
+  // cruza 90/60/30/15 días y todavía no se avisó para ese umbral, se crea un aviso para
+  // cada perfil activo. Se re-evalúa cada vez que cambian las alertas (p. ej. tras editar
+  // un documento/contrato) o cuando se cargan los perfiles/notificaciones existentes.
+  useEffect(() => {
+    if (!userId) return
+    const perfilIds = Object.keys(perfilesPorId)
+    if (perfilIds.length === 0) return
+    const clavesExistentes = new Set(notificaciones.map((n) => n.entidadRelacionada).filter((c): c is string => c !== null))
+    const nuevas: { tipo: string; destinatario_id: string; entidad_relacionada: string; urgencia: Notificacion['urgencia'] }[] = []
+    for (const alerta of alertas) {
+      if (alerta.tipo === 'SLA de Ticket') continue
+      for (const umbral of UMBRALES_NOTIFICACION) {
+        if (alerta.diasParaVencer > umbral) continue
+        const clave = `${alerta.entidadTipo}:${alerta.entidadId}:${umbral}`
+        if (clavesExistentes.has(clave)) continue
+        clavesExistentes.add(clave)
+        for (const perfilId of perfilIds) {
+          nuevas.push({ tipo: alerta.tipo, destinatario_id: perfilId, entidad_relacionada: clave, urgencia: urgenciaPorUmbral(umbral) })
+        }
+      }
+    }
+    if (nuevas.length === 0) return
+    // `alertas`/`perfilesPorId`/`notificaciones` cambian en varios pasos independientes
+    // (cada fetch de documentos/contratos/ordenes resuelve por separado), así que este
+    // efecto puede disparar más de una vez antes de que el insert anterior se refleje en
+    // el estado local. El chequeo en memoria de arriba evita la mayoría de los duplicados,
+    // pero la garantía real es el unique constraint (entidad_relacionada, destinatario_id)
+    // en la base — de ahí el upsert con ignoreDuplicates en vez de insert.
+    supabase
+      .from('notificaciones')
+      .upsert(nuevas, { onConflict: 'entidad_relacionada,destinatario_id', ignoreDuplicates: true })
+      .select()
+      .then(({ data, error }) => {
+        if (error) {
+          console.error('Error al generar notificaciones en Supabase:', error.message)
+          return
+        }
+        if (data) setNotificaciones((prev) => [...prev, ...data.map(notificacionDeFila)])
+      })
+  }, [alertas, perfilesPorId, notificaciones, userId])
 
   const value = useMemo<DataStoreContextValue>(() => {
     const capexAutorizadoTotal = capexAutorizadoTotalBase(proyectosCapex)
@@ -1027,6 +1110,33 @@ export function DataStoreProvider({ children }: { children: ReactNode }) {
 
       perfilesPorId,
 
+      misNotificaciones: notificaciones
+        .filter((n) => n.destinatarioId === userId)
+        .sort((a, b) => new Date(b.fechaGeneracion).getTime() - new Date(a.fechaGeneracion).getTime()),
+      notificacionesNoLeidas: notificaciones.filter((n) => n.destinatarioId === userId && !n.leida).length,
+      marcarNotificacionLeida: (id) => {
+        setNotificaciones((prev) => prev.map((n) => (n.id === id ? { ...n, leida: true } : n)))
+        supabase
+          .from('notificaciones')
+          .update({ leida: true })
+          .eq('id', id)
+          .then(({ error }) => {
+            if (error) console.error('Error al marcar notificación como leída en Supabase:', error.message)
+          })
+      },
+      marcarTodasNotificacionesLeidas: () => {
+        const idsPendientes = notificaciones.filter((n) => n.destinatarioId === userId && !n.leida).map((n) => n.id)
+        if (idsPendientes.length === 0) return
+        setNotificaciones((prev) => prev.map((n) => (idsPendientes.includes(n.id) ? { ...n, leida: true } : n)))
+        supabase
+          .from('notificaciones')
+          .update({ leida: true })
+          .in('id', idsPendientes)
+          .then(({ error }) => {
+            if (error) console.error('Error al marcar notificaciones como leídas en Supabase:', error.message)
+          })
+      },
+
       alertas,
       tareasVivas,
       requerimientosCriticos: requerimientosCriticosBase(alertas),
@@ -1064,6 +1174,7 @@ export function DataStoreProvider({ children }: { children: ReactNode }) {
     capexCotizaciones,
     capexVotos,
     perfilesPorId,
+    notificaciones,
     alertas,
     tareasVivas,
     userId,
