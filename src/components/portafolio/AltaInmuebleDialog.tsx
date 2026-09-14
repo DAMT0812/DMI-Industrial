@@ -223,9 +223,6 @@ export function AltaInmuebleDialog({
             <p className="text-sm font-medium text-foreground">
               {esEdicion ? `Nave ${confirmado} actualizada correctamente.` : `Nave ${confirmado} agregada al Directorio del Portafolio.`}
             </p>
-            {!esEdicion && (
-              <p className="max-w-sm text-xs text-muted-foreground">Se agregó a la tabla de esta sesión (sin persistencia real entre sesiones).</p>
-            )}
           </div>
         ) : (
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">

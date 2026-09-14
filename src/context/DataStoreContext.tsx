@@ -2,7 +2,7 @@ import { createContext, useContext, useEffect, useMemo, useState, type Dispatch,
 import type { ContratoArrendamiento, DocumentoPermiso, Nave, OrdenTrabajo, ProyectoCapex, TareaOperativa } from '@/data/types'
 import { supabase } from '@/lib/supabaseClient'
 import { registrarBitacora } from '@/lib/bitacora'
-import { naves as navesBase, naveById as naveByIdBase } from '@/data/naves'
+import { useAuth } from '@/context/AuthContext'
 import { documentosPorNave as documentosPorNaveBase } from '@/data/documentos'
 import { contratos as contratosBase, contratoPorNaveId as contratoPorNaveIdBase } from '@/data/contratos'
 import { ordenesTrabajo as ordenesTrabajoBase, ordenesPorNave as ordenesPorNaveBase } from '@/data/ordenesTrabajo'
@@ -19,12 +19,13 @@ import * as portafolioKpis from '@/data/portafolioKpis'
 import * as mantenimientoKpis from '@/data/mantenimientoKpis'
 import { aplicarOverrides, type OverrideMap } from '@/data/overrides'
 
-// Fundación de datos editables de la maqueta: cada entidad "editable" vive como
-// arreglo base (src/data/*.ts, sin tocar) + un mapa de overrides de sesión que
-// se fusiona aquí. Todo lo derivado (alertas, tareas vivas, KPIs de portafolio
-// y mantenimiento) se recalcula de forma reactiva a partir de esos datos ya
-// fusionados, así una edición se refleja automáticamente en cualquier pantalla
-// que consuma estos mismos hooks — sin persistencia real entre sesiones.
+// naves y documentos (Fases 6f/6d) persisten de verdad en Supabase. El resto de
+// entidades editables sigue como arreglo base (src/data/*.ts, sin tocar) + un mapa
+// de overrides de sesión que se fusiona aquí, hasta que les toque su propia fase de
+// migración. Todo lo derivado (alertas, tareas vivas, KPIs de portafolio y
+// mantenimiento) se recalcula de forma reactiva a partir de esos datos ya fusionados,
+// así una edición se refleja automáticamente en cualquier pantalla que consuma estos
+// mismos hooks.
 interface DataStoreContextValue {
   naves: Nave[]
   naveById: (id: string) => Nave | undefined
@@ -78,10 +79,97 @@ interface DataStoreContextValue {
 
 const DataStoreContext = createContext<DataStoreContextValue | null>(null)
 
-// documentos ya vive en Supabase de verdad (Fase 6d) — el resto de entidades sigue
-// como maqueta en memoria (overrides de sesión) hasta que les toque su propia fase
-// de migración. Este mapeo traduce entre las columnas snake_case de la tabla
-// "documentos" y el tipo DocumentoPermiso (camelCase) que ya consume toda la UI.
+// naves y documentos ya viven en Supabase de verdad (Fases 6d/6f) — el resto de
+// entidades sigue como maqueta en memoria (overrides de sesión) hasta que les
+// toque su propia fase de migración. Estos mapeos traducen entre las columnas
+// snake_case de cada tabla y los tipos camelCase que ya consume toda la UI.
+function naveDeFila(fila: Record<string, unknown>): Nave {
+  return {
+    id: fila.id as string,
+    folio: fila.folio as string,
+    parqueId: fila.parque_id as string,
+    numeroNave: fila.numero_nave as string,
+    direccion: fila.direccion as string,
+    coordenadas: { lat: Number(fila.lat), lng: Number(fila.lng) },
+    tipoPropiedad: fila.tipo_propiedad as Nave['tipoPropiedad'],
+    claseActivo: fila.clase_activo as Nave['claseActivo'],
+    estatusOperativo: fila.estatus_operativo as Nave['estatusOperativo'],
+    superficieTerreno: Number(fila.superficie_terreno),
+    superficieConstruccion: Number(fila.superficie_construccion),
+    gla: Number(fila.gla),
+    areaOficinas: Number(fila.area_oficinas),
+    alturaLibre: Number(fila.altura_libre),
+    numeroAndenes: Number(fila.numero_andenes),
+    numeroRampas: Number(fila.numero_rampas),
+    capacidadElectrica: Number(fila.capacidad_electrica),
+    pisoFFFL: fila.piso_fffl as string,
+    bahiaColumnas: fila.bahia_columnas as string,
+    usoDeSuelo: fila.uso_de_suelo as string,
+    sistemaConstructivo: fila.sistema_constructivo as string,
+    numeroCajonesEstacionamiento: Number(fila.numero_cajones_estacionamiento),
+    tipoIluminacion: fila.tipo_iluminacion as string,
+    certificacionLEED: (fila.certificacion_leed as Nave['certificacionLEED']) ?? null,
+    certificacionESG: Boolean(fila.certificacion_esg),
+    cumplimientoSTPS: Number(fila.cumplimiento_stps),
+    ocupada: Boolean(fila.ocupada),
+    fechaEntrega: fila.fecha_entrega as string,
+  }
+}
+
+function describirCambiosNave(cambios: Partial<Nave>): string {
+  const partes: string[] = []
+  if (cambios.folio !== undefined) partes.push(`folio → ${cambios.folio}`)
+  if (cambios.estatusOperativo !== undefined) partes.push(`estatus operativo → ${cambios.estatusOperativo}`)
+  if (cambios.claseActivo !== undefined) partes.push(`clase de activo → ${cambios.claseActivo}`)
+  if (cambios.direccion !== undefined) partes.push('dirección actualizada')
+  if (cambios.certificacionLEED !== undefined) partes.push(`certificación LEED → ${cambios.certificacionLEED ?? 'ninguna'}`)
+  if (
+    cambios.gla !== undefined ||
+    cambios.superficieTerreno !== undefined ||
+    cambios.superficieConstruccion !== undefined ||
+    cambios.areaOficinas !== undefined ||
+    cambios.alturaLibre !== undefined
+  ) {
+    partes.push('ficha técnica de superficie actualizada')
+  }
+  return partes.length ? `Inmueble actualizado: ${partes.join(', ')}` : 'Ficha técnica actualizada'
+}
+
+function naveAFila(cambios: Partial<Nave>): Record<string, unknown> {
+  const fila: Record<string, unknown> = {}
+  if (cambios.folio !== undefined) fila.folio = cambios.folio
+  if (cambios.parqueId !== undefined) fila.parque_id = cambios.parqueId
+  if (cambios.numeroNave !== undefined) fila.numero_nave = cambios.numeroNave
+  if (cambios.direccion !== undefined) fila.direccion = cambios.direccion
+  if (cambios.coordenadas !== undefined) {
+    fila.lat = cambios.coordenadas.lat
+    fila.lng = cambios.coordenadas.lng
+  }
+  if (cambios.tipoPropiedad !== undefined) fila.tipo_propiedad = cambios.tipoPropiedad
+  if (cambios.claseActivo !== undefined) fila.clase_activo = cambios.claseActivo
+  if (cambios.estatusOperativo !== undefined) fila.estatus_operativo = cambios.estatusOperativo
+  if (cambios.superficieTerreno !== undefined) fila.superficie_terreno = cambios.superficieTerreno
+  if (cambios.superficieConstruccion !== undefined) fila.superficie_construccion = cambios.superficieConstruccion
+  if (cambios.gla !== undefined) fila.gla = cambios.gla
+  if (cambios.areaOficinas !== undefined) fila.area_oficinas = cambios.areaOficinas
+  if (cambios.alturaLibre !== undefined) fila.altura_libre = cambios.alturaLibre
+  if (cambios.numeroAndenes !== undefined) fila.numero_andenes = cambios.numeroAndenes
+  if (cambios.numeroRampas !== undefined) fila.numero_rampas = cambios.numeroRampas
+  if (cambios.capacidadElectrica !== undefined) fila.capacidad_electrica = cambios.capacidadElectrica
+  if (cambios.pisoFFFL !== undefined) fila.piso_fffl = cambios.pisoFFFL
+  if (cambios.bahiaColumnas !== undefined) fila.bahia_columnas = cambios.bahiaColumnas
+  if (cambios.usoDeSuelo !== undefined) fila.uso_de_suelo = cambios.usoDeSuelo
+  if (cambios.sistemaConstructivo !== undefined) fila.sistema_constructivo = cambios.sistemaConstructivo
+  if (cambios.numeroCajonesEstacionamiento !== undefined) fila.numero_cajones_estacionamiento = cambios.numeroCajonesEstacionamiento
+  if (cambios.tipoIluminacion !== undefined) fila.tipo_iluminacion = cambios.tipoIluminacion
+  if (cambios.certificacionLEED !== undefined) fila.certificacion_leed = cambios.certificacionLEED
+  if (cambios.certificacionESG !== undefined) fila.certificacion_esg = cambios.certificacionESG
+  if (cambios.cumplimientoSTPS !== undefined) fila.cumplimiento_stps = cambios.cumplimientoSTPS
+  if (cambios.ocupada !== undefined) fila.ocupada = cambios.ocupada
+  if (cambios.fechaEntrega !== undefined) fila.fecha_entrega = cambios.fechaEntrega
+  return fila
+}
+
 function documentoDeFila(fila: Record<string, unknown>): DocumentoPermiso {
   return {
     id: fila.id as string,
@@ -125,27 +213,38 @@ function crearEditor<T>(setOverrides: Dispatch<SetStateAction<OverrideMap<T>>>) 
 }
 
 export function DataStoreProvider({ children }: { children: ReactNode }) {
-  const [navesNuevas, setNavesNuevas] = useState<Nave[]>([])
-  const [navesOverrides, setNavesOverrides] = useState<OverrideMap<Nave>>({})
+  const { session } = useAuth()
+  const [naves, setNaves] = useState<Nave[]>([])
   const [documentos, setDocumentos] = useState<DocumentoPermiso[]>([])
   const [contratosOverrides, setContratosOverrides] = useState<OverrideMap<ContratoArrendamiento>>({})
   const [ordenesOverrides, setOrdenesOverrides] = useState<OverrideMap<OrdenTrabajo>>({})
   const [tareasOverrides, setTareasOverrides] = useState<OverrideMap<TareaOperativa>>({})
   const [capexOverrides, setCapexOverrides] = useState<OverrideMap<ProyectoCapex>>({})
 
-  const naves = useMemo(
-    () => aplicarOverrides([...navesBase, ...navesNuevas], navesOverrides),
-    [navesNuevas, navesOverrides],
-  )
-
+  // RLS exige sesión autenticada para leer naves/documentos: se espera a que exista
+  // sesión antes de pedirlas, y se vuelven a pedir en cada cambio de sesión (login,
+  // logout, cambio de cuenta) — si no, un login recién hecho se queda con listas
+  // vacías hasta refrescar la página, porque este efecto solo corría una vez al montar.
+  const userId = session?.user.id
   useEffect(() => {
+    if (!userId) {
+      setNaves([])
+      setDocumentos([])
+      return
+    }
+    supabase
+      .from('naves')
+      .select('*')
+      .then(({ data }) => {
+        if (data) setNaves(data.map(naveDeFila))
+      })
     supabase
       .from('documentos')
       .select('*')
       .then(({ data }) => {
         if (data) setDocumentos(data.map(documentoDeFila))
       })
-  }, [])
+  }, [userId])
 
   const contratos = useMemo(() => aplicarOverrides(contratosBase, contratosOverrides), [contratosOverrides])
   const ordenesTrabajo = useMemo(() => aplicarOverrides(ordenesTrabajoBase, ordenesOverrides), [ordenesOverrides])
@@ -159,9 +258,34 @@ export function DataStoreProvider({ children }: { children: ReactNode }) {
     const capexAutorizadoTotal = capexAutorizadoTotalBase(proyectosCapex)
     return {
       naves,
-      naveById: (id) => naveByIdBase(id, naves),
-      agregarNave: (nave) => setNavesNuevas((prev) => [...prev, nave]),
-      editarNave: crearEditor(setNavesOverrides),
+      naveById: (id) => naves.find((n) => n.id === id),
+      agregarNave: (nave) => {
+        setNaves((prev) => [...prev, nave])
+        supabase
+          .from('naves')
+          .insert({ id: nave.id, ...naveAFila(nave) })
+          .then(({ error }) => {
+            if (error) {
+              console.error('Error al guardar nave en Supabase:', error.message)
+              return
+            }
+            registrarBitacora('naves', nave.id, 'alta', `Nave dada de alta: ${nave.folio} (Nave ${nave.numeroNave})`)
+          })
+      },
+      editarNave: (id, cambios) => {
+        setNaves((prev) => prev.map((n) => (n.id === id ? { ...n, ...cambios } : n)))
+        supabase
+          .from('naves')
+          .update({ ...naveAFila(cambios), updated_at: new Date().toISOString() })
+          .eq('id', id)
+          .then(({ error }) => {
+            if (error) {
+              console.error('Error al guardar nave en Supabase:', error.message)
+              return
+            }
+            registrarBitacora('naves', id, 'edicion', describirCambiosNave(cambios))
+          })
+      },
 
       documentos,
       documentosPorNave: (naveId) => documentosPorNaveBase(naveId, documentos),
