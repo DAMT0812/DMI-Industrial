@@ -13,7 +13,6 @@ import { useDataStore } from '@/context/DataStoreContext'
 import { useAuth } from '@/context/AuthContext'
 import { puedeEditarOrden, puedeValidarCierreOrden } from '@/lib/permissions'
 import {
-  matrizConfiabilidad,
   pmCumplimientoPct,
   PM_CUMPLIDAS,
   PM_META_ANUAL,
@@ -34,6 +33,7 @@ export function MantenimientoPage() {
     parqueById,
     contratistas,
     contratistaById,
+    matrizConfiabilidad,
     proyectoMayorEnCurso: proyectoMayor,
     correctivosActivos: correctivos,
     capexAutorizadoAnio,

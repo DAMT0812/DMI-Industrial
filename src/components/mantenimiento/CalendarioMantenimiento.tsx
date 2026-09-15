@@ -1,4 +1,3 @@
-import { eventosCalendario } from '@/data'
 import { useDataStore } from '@/context/DataStoreContext'
 import { cn } from '@/lib/utils'
 
@@ -13,7 +12,7 @@ const COLOR_TIPO: Record<string, string> = {
 }
 
 export function CalendarioMantenimiento() {
-  const { naveById, parqueById } = useDataStore()
+  const { naveById, parqueById, eventosCalendario } = useDataStore()
   const dias = Array.from({ length: 28 }, (_, i) => i + 1)
 
   return (

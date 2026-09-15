@@ -8,6 +8,7 @@ import type {
   DocumentoPermiso,
   EstadoRenovacion,
   EstudioTecnico,
+  EventoCalendario,
   EvidenciaOrden,
   Inquilino,
   Nave,
@@ -23,6 +24,7 @@ import type {
   TareaOperativa,
   VotoCapex,
 } from '@/data/types'
+import type { SistemaConfiabilidad } from '@/data/matrizConfiabilidad'
 import { supabase } from '@/lib/supabaseClient'
 import { registrarBitacora } from '@/lib/bitacora'
 import { useAuth } from '@/context/AuthContext'
@@ -70,6 +72,10 @@ interface DataStoreContextValue {
   propietarioPorNave: (naveId: string) => PropietarioLegal | undefined
   contactosEmergencia: ContactoEmergencia[]
   contactosEmergenciaPorNave: (naveId: string) => ContactoEmergencia[]
+
+  // Vistas agregadas de portafolio para el dashboard de Mantenimiento (Fase 6r).
+  matrizConfiabilidad: SistemaConfiabilidad[]
+  eventosCalendario: EventoCalendario[]
 
   naves: Nave[]
   // false hasta que se resuelve el primer fetch a Supabase — úsalo para no tratar una
@@ -255,6 +261,29 @@ function contactoEmergenciaDeFila(fila: Record<string, unknown>): ContactoEmerge
     tipo: fila.tipo as ContactoEmergencia['tipo'],
     nombre: fila.nombre as string,
     telefono: fila.telefono as string,
+  }
+}
+
+function sistemaConfiabilidadDeFila(fila: Record<string, unknown>): SistemaConfiabilidad {
+  return {
+    id: fila.id as string,
+    sistema: fila.sistema as string,
+    codigoReferencia: fila.codigo_referencia as string,
+    descripcionIntervencion: fila.descripcion_intervencion as string,
+    indicador: fila.indicador as string,
+    estatusSalud: fila.estatus_salud as SistemaConfiabilidad['estatusSalud'],
+  }
+}
+
+function eventoCalendarioDeFila(fila: Record<string, unknown>): EventoCalendario {
+  return {
+    id: fila.id as string,
+    dia: Number(fila.dia),
+    tipo: fila.tipo as string,
+    hora: fila.hora as string,
+    descripcion: fila.descripcion as string,
+    responsable: fila.responsable as string,
+    naveId: fila.nave_id as string,
   }
 }
 
@@ -684,6 +713,8 @@ export function DataStoreProvider({ children }: { children: ReactNode }) {
   const [estudiosTecnicos, setEstudiosTecnicos] = useState<EstudioTecnico[]>([])
   const [propietariosLegales, setPropietariosLegales] = useState<PropietarioLegal[]>([])
   const [contactosEmergencia, setContactosEmergencia] = useState<ContactoEmergencia[]>([])
+  const [matrizConfiabilidad, setMatrizConfiabilidad] = useState<SistemaConfiabilidad[]>([])
+  const [eventosCalendario, setEventosCalendario] = useState<EventoCalendario[]>([])
   const [naves, setNaves] = useState<Nave[]>([])
   const [navesListas, setNavesListas] = useState(false)
   const [documentos, setDocumentos] = useState<DocumentoPermiso[]>([])
@@ -715,6 +746,8 @@ export function DataStoreProvider({ children }: { children: ReactNode }) {
       setEstudiosTecnicos([])
       setPropietariosLegales([])
       setContactosEmergencia([])
+      setMatrizConfiabilidad([])
+      setEventosCalendario([])
       setNaves([])
       setNavesListas(false)
       setDocumentos([])
@@ -779,6 +812,18 @@ export function DataStoreProvider({ children }: { children: ReactNode }) {
       .select('*')
       .then(({ data }) => {
         if (data) setContactosEmergencia(data.map(contactoEmergenciaDeFila))
+      })
+    supabase
+      .from('matriz_confiabilidad')
+      .select('*')
+      .then(({ data }) => {
+        if (data) setMatrizConfiabilidad(data.map(sistemaConfiabilidadDeFila))
+      })
+    supabase
+      .from('eventos_calendario')
+      .select('*')
+      .then(({ data }) => {
+        if (data) setEventosCalendario(data.map(eventoCalendarioDeFila))
       })
     supabase
       .from('naves')
@@ -929,6 +974,9 @@ export function DataStoreProvider({ children }: { children: ReactNode }) {
       propietarioPorNave: (naveId) => propietariosLegales.find((p) => p.naveId === naveId),
       contactosEmergencia,
       contactosEmergenciaPorNave: (naveId) => contactosEmergencia.filter((c) => c.naveId === naveId),
+
+      matrizConfiabilidad,
+      eventosCalendario,
 
       naves,
       navesListas,
@@ -1391,6 +1439,8 @@ export function DataStoreProvider({ children }: { children: ReactNode }) {
     estudiosTecnicos,
     propietariosLegales,
     contactosEmergencia,
+    matrizConfiabilidad,
+    eventosCalendario,
     naves,
     navesListas,
     documentos,
