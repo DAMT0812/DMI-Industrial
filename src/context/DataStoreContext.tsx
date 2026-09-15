@@ -986,17 +986,30 @@ export function DataStoreProvider({ children }: { children: ReactNode }) {
     // el estado local. El chequeo en memoria de arriba evita la mayoría de los duplicados,
     // pero la garantía real es el unique constraint (entidad_relacionada, destinatario_id)
     // en la base — de ahí el upsert con ignoreDuplicates en vez de insert.
-    supabase
-      .from('notificaciones')
-      .upsert(nuevas, { onConflict: 'entidad_relacionada,destinatario_id', ignoreDuplicates: true })
-      .select()
-      .then(({ data, error }) => {
-        if (error) {
-          console.error('Error al generar notificaciones en Supabase:', error.message)
-          return
-        }
-        if (data) setNotificaciones((prev) => [...prev, ...data.map(notificacionDeFila)])
-      })
+    // TEMPORAL (debug del bug de RLS en reload frío, ver spawn_task task_ea6f3efd):
+    // se captura auth.uid() justo antes del upsert para confirmar si en el momento
+    // del fallo la sesión ya está resuelta en el cliente de Supabase. Quitar este
+    // bloque de debug (y volver a `console.error(..., error.message)`) una vez
+    // capturado un caso real de la violación de RLS.
+    supabase.auth.getSession().then(({ data: sessionData }) => {
+      supabase
+        .from('notificaciones')
+        .upsert(nuevas, { onConflict: 'entidad_relacionada,destinatario_id', ignoreDuplicates: true })
+        .select()
+        .then(({ data, error }) => {
+          if (error) {
+            console.error('[DEBUG notificaciones RLS] Error al generar notificaciones en Supabase:', {
+              error,
+              userIdDelContexto: userId,
+              authUidEnSesion: sessionData.session?.user.id ?? null,
+              sesionExiste: sessionData.session !== null,
+              destinatariosIntentados: [...new Set(nuevas.map((n) => n.destinatario_id))],
+            })
+            return
+          }
+          if (data) setNotificaciones((prev) => [...prev, ...data.map(notificacionDeFila)])
+        })
+    })
   }, [alertas, perfilesPorId, notificaciones, userId])
 
   const value = useMemo<DataStoreContextValue>(() => {
