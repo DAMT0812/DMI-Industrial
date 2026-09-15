@@ -4,7 +4,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Button } from '@/components/ui/button'
 import { StatusBadge } from '@/components/shared/StatusBadge'
 import { DocumentoDialog } from '@/components/shared/DocumentoDialog'
-import { estudiosPorNave, propietarioPorNave, type Nave } from '@/data'
+import type { Nave } from '@/data'
 import { useDataStore } from '@/context/DataStoreContext'
 import { useAuth } from '@/context/AuthContext'
 import { puedeEditarDocumentoObra } from '@/lib/permissions'
@@ -21,7 +21,7 @@ const PLANOS = [
 ]
 
 export function ObraConstruccionTab({ nave }: { nave: Nave }) {
-  const { documentosPorNave, editarDocumento, contratistas } = useDataStore()
+  const { documentosPorNave, editarDocumento, contratistas, estudiosPorNave, propietarioPorNave } = useDataStore()
   const { perfilActivo } = useAuth()
   const puedeEditar = puedeEditarDocumentoObra(perfilActivo.rol)
   // contratistas se carga con un fetch independiente: en un refresh en frío puede resolver

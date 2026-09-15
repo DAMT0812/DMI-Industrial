@@ -216,6 +216,35 @@ export interface SistemaCritico {
   ultimaIntervencion: string
 }
 
+// Catálogo de tipos de sistema crítico (Fase 6q) — sistemas_criticos_nave.sistema_id
+// referencia este catálogo en vez de un texto libre; el nombre/frecuencia mostrados en
+// pantalla se resuelven contra él, igual que parqueById resuelve naves.parqueId.
+export interface CatalogoSistemaCritico {
+  id: string
+  nombre: string
+  frecuencia: 'Mensual' | 'Quincenal' | 'Trimestral' | 'Semestral' | 'Anual'
+  ventanaProximoDias: number
+  ventanaCriticoDias: number
+  prioridad: 'Alta' | 'Media' | 'Baja'
+}
+
+// Instancia real de un sistema crítico en una nave (tabla sistemas_criticos_nave) — a
+// diferencia del SistemaCritico de maqueta, no lleva "tipo" en texto libre sino el FK
+// sistemaId hacia CatalogoSistemaCritico.
+export interface SistemaCriticoNave {
+  id: string
+  naveId: string
+  sistemaId: string
+  codigoReferencia: string
+  vendor: string
+  costoAnualEstimado: number
+  fechaUltimoMantenimiento: string
+  fechaProximoMantenimiento: string
+  indicadorSalud: string
+  estatusSalud: 'Óptimo' | 'Alerta' | 'Crítico'
+  ultimaIntervencion: string
+}
+
 export type PrioridadTicket = 'Crítica' | 'Alta' | 'Media' | 'Baja'
 // Abierta → En ejecución → (Esperando Refacción, si aplica) → Pendiente de Evidencia → Validado.
 // Cancelada es un estado alterno terminal, distinto de Validado, desde cualquier estado activo.

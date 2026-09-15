@@ -9,7 +9,6 @@ import {
   FACILITY_MANAGER_POR_REGION,
   brokerPorNaveId,
   brokerById,
-  contactosEmergenciaPorNave,
   type Nave,
 } from '@/data'
 import { usePreferences } from '@/context/PreferencesContext'
@@ -23,7 +22,7 @@ import { Mail, Pencil, Phone, ShieldAlert, Users } from 'lucide-react'
 export function ContratoArrendatarioTab({ nave }: { nave: Nave }) {
   const { moneda } = usePreferences()
   const { perfilActivo } = useAuth()
-  const { contratoPorNaveId, renovacionActivaPorContrato, resolverRenovacion, parqueById, inquilinoById } = useDataStore()
+  const { contratoPorNaveId, renovacionActivaPorContrato, resolverRenovacion, parqueById, inquilinoById, contactosEmergenciaPorNave } = useDataStore()
   const contrato = contratoPorNaveId(nave.id)
   const renovacion = contrato ? renovacionActivaPorContrato(contrato.id) : undefined
   const inquilino = inquilinoById(contrato?.inquilinoId ?? '')

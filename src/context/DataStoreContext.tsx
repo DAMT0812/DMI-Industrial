@@ -1,10 +1,13 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
 import type {
+  CatalogoSistemaCritico,
+  ContactoEmergencia,
   Contratista,
   ContratoArrendamiento,
   CotizacionCapex,
   DocumentoPermiso,
   EstadoRenovacion,
+  EstudioTecnico,
   EvidenciaOrden,
   Inquilino,
   Nave,
@@ -12,9 +15,11 @@ import type {
   OrdenTrabajo,
   ParqueIndustrial,
   PausaOrden,
+  PropietarioLegal,
   ProyectoCapex,
   RenovacionContrato,
   SentidoVoto,
+  SistemaCriticoNave,
   TareaOperativa,
   VotoCapex,
 } from '@/data/types'
@@ -51,6 +56,20 @@ interface DataStoreContextValue {
   inquilinoById: (id: string) => Inquilino | undefined
   contratistas: Contratista[]
   contratistaById: (id: string) => Contratista | undefined
+
+  // Catálogo de tipos de sistema crítico + inventario real por nave (Fase 6q).
+  catalogoSistemasCriticos: CatalogoSistemaCritico[]
+  catalogoSistemaById: (id: string) => CatalogoSistemaCritico | undefined
+  sistemasCriticos: SistemaCriticoNave[]
+  sistemasPorNave: (naveId: string) => SistemaCriticoNave[]
+
+  // Expediente 360° por nave (Fase 6q) — solo lectura, sin escritura desde el cliente hoy.
+  estudiosTecnicos: EstudioTecnico[]
+  estudiosPorNave: (naveId: string) => EstudioTecnico[]
+  propietariosLegales: PropietarioLegal[]
+  propietarioPorNave: (naveId: string) => PropietarioLegal | undefined
+  contactosEmergencia: ContactoEmergencia[]
+  contactosEmergenciaPorNave: (naveId: string) => ContactoEmergencia[]
 
   naves: Nave[]
   // false hasta que se resuelve el primer fetch a Supabase — úsalo para no tratar una
@@ -175,6 +194,67 @@ function contratistaDeFila(fila: Record<string, unknown>): Contratista {
     polizaRC: fila.poliza_rc as Contratista['polizaRC'],
     trabajosDelAno: Number(fila.trabajos_del_ano),
     porcentajeOnTime: Number(fila.porcentaje_on_time),
+  }
+}
+
+function catalogoSistemaCriticoDeFila(fila: Record<string, unknown>): CatalogoSistemaCritico {
+  return {
+    id: fila.id as string,
+    nombre: fila.nombre as string,
+    frecuencia: fila.frecuencia as CatalogoSistemaCritico['frecuencia'],
+    ventanaProximoDias: Number(fila.ventana_proximo_dias),
+    ventanaCriticoDias: Number(fila.ventana_critico_dias),
+    prioridad: fila.prioridad as CatalogoSistemaCritico['prioridad'],
+  }
+}
+
+function sistemaCriticoNaveDeFila(fila: Record<string, unknown>): SistemaCriticoNave {
+  return {
+    id: fila.id as string,
+    naveId: fila.nave_id as string,
+    sistemaId: fila.sistema_id as string,
+    codigoReferencia: fila.codigo_referencia as string,
+    vendor: fila.vendor as string,
+    costoAnualEstimado: Number(fila.costo_anual_estimado),
+    fechaUltimoMantenimiento: fila.fecha_ultimo_mantenimiento as string,
+    fechaProximoMantenimiento: fila.fecha_proximo_mantenimiento as string,
+    indicadorSalud: fila.indicador_salud as string,
+    estatusSalud: fila.estatus_salud as SistemaCriticoNave['estatusSalud'],
+    ultimaIntervencion: fila.ultima_intervencion as string,
+  }
+}
+
+function estudioTecnicoDeFila(fila: Record<string, unknown>): EstudioTecnico {
+  return {
+    id: fila.id as string,
+    naveId: fila.nave_id as string,
+    tipo: fila.tipo as EstudioTecnico['tipo'],
+    empresaConsultora: fila.empresa_consultora as string,
+    fechaRealizacion: fila.fecha_realizacion as string,
+    resultado: fila.resultado as string,
+    archivoUrl: (fila.archivo_url as string | null) ?? '',
+  }
+}
+
+function propietarioLegalDeFila(fila: Record<string, unknown>): PropietarioLegal {
+  return {
+    naveId: fila.nave_id as string,
+    razonSocial: fila.razon_social as string,
+    rfc: fila.rfc as string,
+    regimenPropiedad: fila.regimen_propiedad as PropietarioLegal['regimenPropiedad'],
+    numeroEscritura: fila.numero_escritura as string,
+    notario: fila.notario as string,
+    folioRPP: fila.folio_rpp as string,
+    gravamenes: (fila.gravamenes as string | null) ?? null,
+  }
+}
+
+function contactoEmergenciaDeFila(fila: Record<string, unknown>): ContactoEmergencia {
+  return {
+    naveId: fila.nave_id as string,
+    tipo: fila.tipo as ContactoEmergencia['tipo'],
+    nombre: fila.nombre as string,
+    telefono: fila.telefono as string,
   }
 }
 
@@ -599,6 +679,11 @@ export function DataStoreProvider({ children }: { children: ReactNode }) {
   const [parquesListos, setParquesListos] = useState(false)
   const [inquilinos, setInquilinos] = useState<Inquilino[]>([])
   const [contratistas, setContratistas] = useState<Contratista[]>([])
+  const [catalogoSistemasCriticos, setCatalogoSistemasCriticos] = useState<CatalogoSistemaCritico[]>([])
+  const [sistemasCriticos, setSistemasCriticos] = useState<SistemaCriticoNave[]>([])
+  const [estudiosTecnicos, setEstudiosTecnicos] = useState<EstudioTecnico[]>([])
+  const [propietariosLegales, setPropietariosLegales] = useState<PropietarioLegal[]>([])
+  const [contactosEmergencia, setContactosEmergencia] = useState<ContactoEmergencia[]>([])
   const [naves, setNaves] = useState<Nave[]>([])
   const [navesListas, setNavesListas] = useState(false)
   const [documentos, setDocumentos] = useState<DocumentoPermiso[]>([])
@@ -625,6 +710,11 @@ export function DataStoreProvider({ children }: { children: ReactNode }) {
       setParquesListos(false)
       setInquilinos([])
       setContratistas([])
+      setCatalogoSistemasCriticos([])
+      setSistemasCriticos([])
+      setEstudiosTecnicos([])
+      setPropietariosLegales([])
+      setContactosEmergencia([])
       setNaves([])
       setNavesListas(false)
       setDocumentos([])
@@ -659,6 +749,36 @@ export function DataStoreProvider({ children }: { children: ReactNode }) {
       .select('*')
       .then(({ data }) => {
         if (data) setContratistas(data.map(contratistaDeFila))
+      })
+    supabase
+      .from('catalogo_sistemas_criticos')
+      .select('*')
+      .then(({ data }) => {
+        if (data) setCatalogoSistemasCriticos(data.map(catalogoSistemaCriticoDeFila))
+      })
+    supabase
+      .from('sistemas_criticos_nave')
+      .select('*')
+      .then(({ data }) => {
+        if (data) setSistemasCriticos(data.map(sistemaCriticoNaveDeFila))
+      })
+    supabase
+      .from('estudios_tecnicos')
+      .select('*')
+      .then(({ data }) => {
+        if (data) setEstudiosTecnicos(data.map(estudioTecnicoDeFila))
+      })
+    supabase
+      .from('propietarios_legales')
+      .select('*')
+      .then(({ data }) => {
+        if (data) setPropietariosLegales(data.map(propietarioLegalDeFila))
+      })
+    supabase
+      .from('contactos_emergencia')
+      .select('*')
+      .then(({ data }) => {
+        if (data) setContactosEmergencia(data.map(contactoEmergenciaDeFila))
       })
     supabase
       .from('naves')
@@ -797,6 +917,18 @@ export function DataStoreProvider({ children }: { children: ReactNode }) {
       inquilinoById: (id) => inquilinos.find((i) => i.id === id),
       contratistas,
       contratistaById: (id) => contratistas.find((c) => c.id === id),
+
+      catalogoSistemasCriticos,
+      catalogoSistemaById: (id) => catalogoSistemasCriticos.find((c) => c.id === id),
+      sistemasCriticos,
+      sistemasPorNave: (naveId) => sistemasCriticos.filter((s) => s.naveId === naveId),
+
+      estudiosTecnicos,
+      estudiosPorNave: (naveId) => estudiosTecnicos.filter((e) => e.naveId === naveId),
+      propietariosLegales,
+      propietarioPorNave: (naveId) => propietariosLegales.find((p) => p.naveId === naveId),
+      contactosEmergencia,
+      contactosEmergenciaPorNave: (naveId) => contactosEmergencia.filter((c) => c.naveId === naveId),
 
       naves,
       navesListas,
@@ -1254,6 +1386,11 @@ export function DataStoreProvider({ children }: { children: ReactNode }) {
     parquesListos,
     inquilinos,
     contratistas,
+    catalogoSistemasCriticos,
+    sistemasCriticos,
+    estudiosTecnicos,
+    propietariosLegales,
+    contactosEmergencia,
     naves,
     navesListas,
     documentos,
