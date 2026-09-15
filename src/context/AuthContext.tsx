@@ -29,7 +29,9 @@ export interface PerfilActivo {
 }
 
 function regionDesdeAmbito(profile: ProfileRow): Region | 'todas' {
-  if (profile.rol === 'Superadministrador') return 'todas'
+  // Dirección tiene alcance global automático, igual que Superadministrador (Fase 7a) —
+  // el espejo servidor de esta regla vive en mi_ambito_permite() (migración 0016).
+  if (profile.rol === 'Superadministrador' || profile.rol === 'Dirección') return 'todas'
   if (profile.acceso_total) return 'todas'
   if (profile.ambito_regiones.length === 1) return profile.ambito_regiones[0]
   return 'todas'
