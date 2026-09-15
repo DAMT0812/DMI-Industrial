@@ -8,12 +8,13 @@ import { esAdministrador } from '@/lib/permissions'
 import { registrarBitacora } from '@/lib/bitacora'
 import type { Region } from '@/data'
 
-const ROLES: ProfileRow['rol'][] = ['Property Manager', 'Facility Manager', 'Dirección', 'Contabilidad', 'Administrador del Sistema']
+const ROLES: ProfileRow['rol'][] = ['Property Manager', 'Facility Manager', 'Dirección', 'Contabilidad', 'Administrador del Sistema', 'Superadministrador']
 const REGIONES: Region[] = ['Bajío', 'Norte', 'Occidente']
 
 type FilaEdicion = { rol: ProfileRow['rol']; region: Region | 'todas'; activo: boolean }
 
 function regionDeFila(p: ProfileRow): Region | 'todas' {
+  if (p.rol === 'Superadministrador') return 'todas'
   if (p.acceso_total) return 'todas'
   if (p.ambito_regiones.length === 1) return p.ambito_regiones[0]
   return 'todas'

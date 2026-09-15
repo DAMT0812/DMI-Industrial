@@ -9,7 +9,7 @@ export interface ProfileRow {
   nombre: string
   correo: string
   puesto: string
-  rol: 'Property Manager' | 'Facility Manager' | 'Dirección' | 'Contabilidad' | 'Administrador del Sistema'
+  rol: 'Property Manager' | 'Facility Manager' | 'Dirección' | 'Contabilidad' | 'Administrador del Sistema' | 'Superadministrador'
   ambito_regiones: Region[]
   ambito_parques: string[]
   ambito_naves: string[]
@@ -29,6 +29,7 @@ export interface PerfilActivo {
 }
 
 function regionDesdeAmbito(profile: ProfileRow): Region | 'todas' {
+  if (profile.rol === 'Superadministrador') return 'todas'
   if (profile.acceso_total) return 'todas'
   if (profile.ambito_regiones.length === 1) return profile.ambito_regiones[0]
   return 'todas'
