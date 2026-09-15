@@ -13,13 +13,13 @@ import { usePreferences } from '@/context/PreferencesContext'
 import { useDataStore } from '@/context/DataStoreContext'
 import { useAuth } from '@/context/AuthContext'
 import { puedeEditarCapex } from '@/lib/permissions'
-import { solicitudesCotizacion, CAPEX_BOLSA_ANUAL_USD } from '@/data'
+import { CAPEX_BOLSA_ANUAL_USD } from '@/data'
 import { formatMoneda, formatPct } from '@/lib/format'
 
 export function TareasCapexPage() {
   const { moneda } = usePreferences()
   const { perfilActivo } = useAuth()
-  const { alertas, proyectosCapex, tareasVivas, capexAutorizadoTotal, capexDisponiblePct } = useDataStore()
+  const { alertas, proyectosCapex, tareasVivas, capexAutorizadoTotal, capexDisponiblePct, solicitudesCotizacion } = useDataStore()
   const [nuevoCapexAbierto, setNuevoCapexAbierto] = useState(false)
 
   const vencimientosCriticos = alertas.filter((a) => a.urgencia === 'Crítico Inminente' && a.tipo !== 'SLA de Ticket').length

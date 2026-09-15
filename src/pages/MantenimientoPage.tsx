@@ -12,16 +12,7 @@ import { usePreferences } from '@/context/PreferencesContext'
 import { useDataStore } from '@/context/DataStoreContext'
 import { useAuth } from '@/context/AuthContext'
 import { puedeEditarOrden, puedeValidarCierreOrden } from '@/lib/permissions'
-import {
-  pmCumplimientoPct,
-  PM_CUMPLIDAS,
-  PM_META_ANUAL,
-  opexEjecutadoPct,
-  OPEX_EJECUTADO_YTD_USD,
-  OPEX_PRESUPUESTO_ANUAL_USD,
-  SLA_META_HORAS,
-  type OrdenTrabajo,
-} from '@/data'
+import { OPEX_PRESUPUESTO_ANUAL_USD, SLA_META_HORAS, type OrdenTrabajo } from '@/data'
 import { formatMoneda, formatPct } from '@/lib/format'
 
 export function MantenimientoPage() {
@@ -36,6 +27,10 @@ export function MantenimientoPage() {
     matrizConfiabilidad,
     proyectoMayorEnCurso: proyectoMayor,
     correctivosActivos: correctivos,
+    ordenesValidadas,
+    ordenesValidadasPct,
+    opexEjecutadoUSD,
+    opexEjecutadoPct,
     capexAutorizadoAnio,
     capexProyectosMayores,
     slaPromedioResolucionHoras,
@@ -73,11 +68,11 @@ export function MantenimientoPage() {
 
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-5">
         <KpiCard
-          etiqueta="Cumplimiento PM"
+          etiqueta="Órdenes Validadas & Auditadas"
           icono={Wrench}
-          valor={formatPct(pmCumplimientoPct())}
-          detalle={`${PM_CUMPLIDAS}/${PM_META_ANUAL} mantenimientos programados`}
-          progreso={pmCumplimientoPct()}
+          valor={formatPct(ordenesValidadasPct)}
+          detalle={`${ordenesValidadas}/${ordenesTrabajo.length} órdenes de trabajo`}
+          progreso={ordenesValidadasPct}
         />
         <KpiCard
           etiqueta="Correctivos Activos"
@@ -88,9 +83,9 @@ export function MantenimientoPage() {
         <KpiCard
           etiqueta="OpEx YTD vs Presupuesto"
           icono={DollarSign}
-          valor={formatMoneda(OPEX_EJECUTADO_YTD_USD, moneda)}
-          detalle={`${formatPct(opexEjecutadoPct())} de ${formatMoneda(OPEX_PRESUPUESTO_ANUAL_USD, moneda)}`}
-          progreso={opexEjecutadoPct()}
+          valor={formatMoneda(opexEjecutadoUSD, moneda)}
+          detalle={`${formatPct(opexEjecutadoPct)} de ${formatMoneda(OPEX_PRESUPUESTO_ANUAL_USD, moneda)}`}
+          progreso={opexEjecutadoPct}
         />
         <KpiCard
           etiqueta="CapEx Autorizado"

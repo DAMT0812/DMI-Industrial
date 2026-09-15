@@ -17,10 +17,12 @@ import type {
   ParqueIndustrial,
   PausaOrden,
   PropietarioLegal,
+  PropuestaProveedor,
   ProyectoCapex,
   RenovacionContrato,
   SentidoVoto,
   SistemaCriticoNave,
+  SolicitudCotizacion,
   TareaOperativa,
   VotoCapex,
 } from '@/data/types'
@@ -76,6 +78,11 @@ interface DataStoreContextValue {
   // Vistas agregadas de portafolio para el dashboard de Mantenimiento (Fase 6r).
   matrizConfiabilidad: SistemaConfiabilidad[]
   eventosCalendario: EventoCalendario[]
+
+  // RFP de mantenimiento (Fase 6s) — se reconstruye anidado (propuestas + recibidas/total)
+  // a partir de solicitudes_cotizacion + solicitud_propuestas, dos tablas reales desde
+  // Fase 6a; sin escritura desde el cliente hoy (los botones de la ficha son decorativos).
+  solicitudesCotizacion: SolicitudCotizacion[]
 
   naves: Nave[]
   // false hasta que se resuelve el primer fetch a Supabase — úsalo para no tratar una
@@ -155,6 +162,10 @@ interface DataStoreContextValue {
   serieNOIAnual: ReturnType<typeof portafolioKpis.serieNOIAnual>
 
   correctivosActivos: ReturnType<typeof mantenimientoKpis.correctivosActivos>
+  ordenesValidadas: number
+  ordenesValidadasPct: number
+  opexEjecutadoUSD: number
+  opexEjecutadoPct: number
   capexProyectosMayores: number
   capexAutorizadoAnio: number
   slaPromedioResolucionHoras: number
@@ -284,6 +295,27 @@ function eventoCalendarioDeFila(fila: Record<string, unknown>): EventoCalendario
     descripcion: fila.descripcion as string,
     responsable: fila.responsable as string,
     naveId: fila.nave_id as string,
+  }
+}
+
+function solicitudCotizacionHeaderDeFila(fila: Record<string, unknown>): Omit<SolicitudCotizacion, 'propuestas' | 'recibidas' | 'total'> {
+  return {
+    id: fila.id as string,
+    folio: fila.folio as string,
+    naveId: fila.nave_id as string,
+    titulo: fila.titulo as string,
+    diasParaVencer: (fila.dias_para_vencer as number | null) ?? null,
+  }
+}
+
+function propuestaProveedorDeFila(fila: Record<string, unknown>): PropuestaProveedor & { solicitudId: string } {
+  return {
+    solicitudId: fila.solicitud_id as string,
+    proveedor: fila.proveedor as string,
+    precio: Number(fila.precio),
+    garantiaMeses: Number(fila.garantia_meses),
+    recibida: Boolean(fila.recibida),
+    mejorOferta: Boolean(fila.mejor_oferta),
   }
 }
 
@@ -715,6 +747,8 @@ export function DataStoreProvider({ children }: { children: ReactNode }) {
   const [contactosEmergencia, setContactosEmergencia] = useState<ContactoEmergencia[]>([])
   const [matrizConfiabilidad, setMatrizConfiabilidad] = useState<SistemaConfiabilidad[]>([])
   const [eventosCalendario, setEventosCalendario] = useState<EventoCalendario[]>([])
+  const [solicitudesCotizacionHeaders, setSolicitudesCotizacionHeaders] = useState<Omit<SolicitudCotizacion, 'propuestas' | 'recibidas' | 'total'>[]>([])
+  const [solicitudPropuestas, setSolicitudPropuestas] = useState<(PropuestaProveedor & { solicitudId: string })[]>([])
   const [naves, setNaves] = useState<Nave[]>([])
   const [navesListas, setNavesListas] = useState(false)
   const [documentos, setDocumentos] = useState<DocumentoPermiso[]>([])
@@ -748,6 +782,8 @@ export function DataStoreProvider({ children }: { children: ReactNode }) {
       setContactosEmergencia([])
       setMatrizConfiabilidad([])
       setEventosCalendario([])
+      setSolicitudesCotizacionHeaders([])
+      setSolicitudPropuestas([])
       setNaves([])
       setNavesListas(false)
       setDocumentos([])
@@ -824,6 +860,18 @@ export function DataStoreProvider({ children }: { children: ReactNode }) {
       .select('*')
       .then(({ data }) => {
         if (data) setEventosCalendario(data.map(eventoCalendarioDeFila))
+      })
+    supabase
+      .from('solicitudes_cotizacion')
+      .select('*')
+      .then(({ data }) => {
+        if (data) setSolicitudesCotizacionHeaders(data.map(solicitudCotizacionHeaderDeFila))
+      })
+    supabase
+      .from('solicitud_propuestas')
+      .select('*')
+      .then(({ data }) => {
+        if (data) setSolicitudPropuestas(data.map(propuestaProveedorDeFila))
       })
     supabase
       .from('naves')
@@ -977,6 +1025,11 @@ export function DataStoreProvider({ children }: { children: ReactNode }) {
 
       matrizConfiabilidad,
       eventosCalendario,
+
+      solicitudesCotizacion: solicitudesCotizacionHeaders.map((h) => {
+        const propuestas = solicitudPropuestas.filter((p) => p.solicitudId === h.id).map(({ solicitudId: _solicitudId, ...resto }) => resto)
+        return { ...h, propuestas, recibidas: propuestas.filter((p) => p.recibida).length, total: propuestas.length }
+      }),
 
       naves,
       navesListas,
@@ -1424,6 +1477,10 @@ export function DataStoreProvider({ children }: { children: ReactNode }) {
       serieNOIAnual: portafolioKpis.serieNOIAnual(contratos),
 
       correctivosActivos: mantenimientoKpis.correctivosActivos(ordenesTrabajo),
+      ordenesValidadas: mantenimientoKpis.ordenesValidadas(ordenesTrabajo),
+      ordenesValidadasPct: mantenimientoKpis.ordenesValidadasPct(ordenesTrabajo),
+      opexEjecutadoUSD: mantenimientoKpis.opexEjecutadoUSD(ordenesTrabajo),
+      opexEjecutadoPct: mantenimientoKpis.opexEjecutadoPct(ordenesTrabajo),
       capexProyectosMayores: mantenimientoKpis.capexProyectosMayores(proyectosCapex),
       capexAutorizadoAnio: mantenimientoKpis.capexAutorizadoAnio(proyectosCapex),
       slaPromedioResolucionHoras: mantenimientoKpis.slaPromedioResolucionHoras(ordenesTrabajo),
@@ -1441,6 +1498,8 @@ export function DataStoreProvider({ children }: { children: ReactNode }) {
     contactosEmergencia,
     matrizConfiabilidad,
     eventosCalendario,
+    solicitudesCotizacionHeaders,
+    solicitudPropuestas,
     naves,
     navesListas,
     documentos,

@@ -3,9 +3,15 @@ import { proyectosCapex, capexAutorizadoTotal } from './proyectosCapex'
 import { diasEntre } from '../lib/dates'
 import type { OrdenTrabajo, ProyectoCapex } from './types'
 
-export const PM_CUMPLIDAS = 118
-export const PM_META_ANUAL = 125
-export const pmCumplimientoPct = () => Math.round((PM_CUMPLIDAS / PM_META_ANUAL) * 1000) / 10
+// Fase 6t: "Cumplimiento PM" no tenía una fuente real honesta — nada en el esquema
+// rastrea "mantenimientos programados este año" como tal, y las categorías reales más
+// cercanas (tareas_operativas con categoria='Preventivo') son solo 2 de 16 registros,
+// una muestra demasiado chica para decir algo. Se redefine como el cierre real de
+// órdenes de trabajo de mantenimiento: cuántas ya quedaron Validadas sobre el total.
+export const ordenesValidadas = (ordenesInput: OrdenTrabajo[] = ordenesTrabajo) => ordenesInput.filter((o) => o.estatus === 'Validado').length
+
+export const ordenesValidadasPct = (ordenesInput: OrdenTrabajo[] = ordenesTrabajo) =>
+  ordenesInput.length === 0 ? 0 : Math.round((ordenesValidadas(ordenesInput) / ordenesInput.length) * 1000) / 10
 
 export const correctivosActivos = (ordenesInput: OrdenTrabajo[] = ordenesTrabajo) => {
   const abiertas = ordenesInput.filter((o) => o.estatus !== 'Validado' && o.estatus !== 'Cancelada')
@@ -17,9 +23,17 @@ export const correctivosActivos = (ordenesInput: OrdenTrabajo[] = ordenesTrabajo
   }
 }
 
+// El presupuesto anual sigue sin una fuente real (Fase 6t no toca metas/presupuestos,
+// solo lo ya calculable) — el ejecutado sí: suma de costoEstimado de toda orden que no
+// se canceló (una cancelada nunca incurrió gasto), usando el estimado como aproximación
+// ya que el esquema no guarda un costo real facturado por separado.
 export const OPEX_PRESUPUESTO_ANUAL_USD = 4_200_000
-export const OPEX_EJECUTADO_YTD_USD = 2_890_000
-export const opexEjecutadoPct = () => Math.round((OPEX_EJECUTADO_YTD_USD / OPEX_PRESUPUESTO_ANUAL_USD) * 1000) / 10
+
+export const opexEjecutadoUSD = (ordenesInput: OrdenTrabajo[] = ordenesTrabajo) =>
+  ordenesInput.filter((o) => o.estatus !== 'Cancelada').reduce((acc, o) => acc + o.costoEstimado, 0)
+
+export const opexEjecutadoPct = (ordenesInput: OrdenTrabajo[] = ordenesTrabajo) =>
+  Math.round((opexEjecutadoUSD(ordenesInput) / OPEX_PRESUPUESTO_ANUAL_USD) * 1000) / 10
 
 export const capexProyectosMayores = (proyectosInput: ProyectoCapex[] = proyectosCapex) =>
   proyectosInput.filter((p) => p.estatusComite === 'Aprobado por Dirección' || p.estatusComite === 'En Ejecución').length
