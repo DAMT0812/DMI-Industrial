@@ -190,6 +190,14 @@ export interface Broker {
   inmobiliaria: string
   telefono: string
   email: string
+  region: Region
+}
+
+export interface PersonalRegional {
+  id: string
+  region: Region
+  rol: 'Property Manager' | 'Facility Manager'
+  nombreCompleto: string
 }
 
 export type TipoSistemaCritico =

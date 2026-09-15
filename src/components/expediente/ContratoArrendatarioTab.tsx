@@ -4,13 +4,7 @@ import { Button } from '@/components/ui/button'
 import { StatusBadge } from '@/components/shared/StatusBadge'
 import { AprobarRechazarDialog } from '@/components/shared/AprobarRechazarDialog'
 import { EditarContratoDialog } from '@/components/expediente/EditarContratoDialog'
-import {
-  PM_POR_REGION,
-  FACILITY_MANAGER_POR_REGION,
-  brokerPorNaveId,
-  brokerById,
-  type Nave,
-} from '@/data'
+import { type Nave } from '@/data'
 import { usePreferences } from '@/context/PreferencesContext'
 import { useDataStore } from '@/context/DataStoreContext'
 import { useAuth } from '@/context/AuthContext'
@@ -22,14 +16,23 @@ import { Mail, Pencil, Phone, ShieldAlert, Users } from 'lucide-react'
 export function ContratoArrendatarioTab({ nave }: { nave: Nave }) {
   const { moneda } = usePreferences()
   const { perfilActivo } = useAuth()
-  const { contratoPorNaveId, renovacionActivaPorContrato, resolverRenovacion, parqueById, inquilinoById, contactosEmergenciaPorNave } = useDataStore()
+  const {
+    contratoPorNaveId,
+    renovacionActivaPorContrato,
+    resolverRenovacion,
+    parqueById,
+    inquilinoById,
+    contactosEmergenciaPorNave,
+    brokerPorRegion,
+    personalPorRegionYRol,
+  } = useDataStore()
   const contrato = contratoPorNaveId(nave.id)
   const renovacion = contrato ? renovacionActivaPorContrato(contrato.id) : undefined
   const inquilino = inquilinoById(contrato?.inquilinoId ?? '')
-  const region = parqueById(nave.parqueId)!.region
-  const pm = PM_POR_REGION[region]
-  const fm = FACILITY_MANAGER_POR_REGION[region]
-  const broker = brokerById(brokerPorNaveId[nave.id])
+  const region = parqueById(nave.parqueId)?.region
+  const pm = region ? personalPorRegionYRol(region, 'Property Manager') : undefined
+  const fm = region ? personalPorRegionYRol(region, 'Facility Manager') : undefined
+  const broker = region ? brokerPorRegion(region) : undefined
   const emergencia = contactosEmergenciaPorNave(nave.id)
 
   // Un contrato "en revisión" es en realidad un contrato Vigente con una renovación
@@ -128,8 +131,8 @@ export function ContratoArrendatarioTab({ nave }: { nave: Nave }) {
             </CardTitle>
           </CardHeader>
           <CardContent className="flex flex-col gap-2.5 text-sm">
-            <Fila etiqueta="Property Manager Regional" valor={pm} />
-            <Fila etiqueta="Facility Manager Regional" valor={fm} />
+            <Fila etiqueta="Property Manager Regional" valor={pm ?? '—'} />
+            <Fila etiqueta="Facility Manager Regional" valor={fm ?? '—'} />
             {broker && <Fila etiqueta="Broker Externo" valor={`${broker.nombre} — ${broker.inmobiliaria}`} />}
             {broker && <Fila etiqueta="Contacto del Broker" valor={`${broker.telefono} · ${broker.email}`} tabular />}
           </CardContent>

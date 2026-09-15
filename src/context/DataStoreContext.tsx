@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
 import type {
+  Broker,
   CatalogoSistemaCritico,
   ContactoEmergencia,
   Contratista,
@@ -16,6 +17,7 @@ import type {
   OrdenTrabajo,
   ParqueIndustrial,
   PausaOrden,
+  PersonalRegional,
   PropietarioLegal,
   PropuestaProveedor,
   ProyectoCapex,
@@ -60,6 +62,12 @@ interface DataStoreContextValue {
   inquilinoById: (id: string) => Inquilino | undefined
   contratistas: Contratista[]
   contratistaById: (id: string) => Contratista | undefined
+
+  // Broker externo y directorio de PM/Facility Manager por región (Fase 6v) — una
+  // asignación por región, no por nave, igual que ya lo modelaba el mock.
+  brokers: Broker[]
+  brokerPorRegion: (region: ParqueIndustrial['region']) => Broker | undefined
+  personalPorRegionYRol: (region: ParqueIndustrial['region'], rol: PersonalRegional['rol']) => string | undefined
 
   // Catálogo de tipos de sistema crítico + inventario real por nave (Fase 6q).
   catalogoSistemasCriticos: CatalogoSistemaCritico[]
@@ -199,6 +207,26 @@ function inquilinoDeFila(fila: Record<string, unknown>): Inquilino {
     plantManager: fila.plant_manager as Inquilino['plantManager'],
     contactoMantenimiento: fila.contacto_mantenimiento as Inquilino['contactoMantenimiento'],
     contactoCxP: fila.contacto_cxp as Inquilino['contactoCxP'],
+  }
+}
+
+function brokerDeFila(fila: Record<string, unknown>): Broker {
+  return {
+    id: fila.id as string,
+    nombre: fila.nombre as string,
+    inmobiliaria: fila.inmobiliaria as string,
+    telefono: fila.telefono as string,
+    email: fila.email as string,
+    region: fila.region as Broker['region'],
+  }
+}
+
+function personalRegionalDeFila(fila: Record<string, unknown>): PersonalRegional {
+  return {
+    id: fila.id as string,
+    region: fila.region as PersonalRegional['region'],
+    rol: fila.rol as PersonalRegional['rol'],
+    nombreCompleto: fila.nombre_completo as string,
   }
 }
 
@@ -740,6 +768,8 @@ export function DataStoreProvider({ children }: { children: ReactNode }) {
   const [parquesListos, setParquesListos] = useState(false)
   const [inquilinos, setInquilinos] = useState<Inquilino[]>([])
   const [contratistas, setContratistas] = useState<Contratista[]>([])
+  const [brokers, setBrokers] = useState<Broker[]>([])
+  const [personalRegional, setPersonalRegional] = useState<PersonalRegional[]>([])
   const [catalogoSistemasCriticos, setCatalogoSistemasCriticos] = useState<CatalogoSistemaCritico[]>([])
   const [sistemasCriticos, setSistemasCriticos] = useState<SistemaCriticoNave[]>([])
   const [estudiosTecnicos, setEstudiosTecnicos] = useState<EstudioTecnico[]>([])
@@ -775,6 +805,8 @@ export function DataStoreProvider({ children }: { children: ReactNode }) {
       setParquesListos(false)
       setInquilinos([])
       setContratistas([])
+      setBrokers([])
+      setPersonalRegional([])
       setCatalogoSistemasCriticos([])
       setSistemasCriticos([])
       setEstudiosTecnicos([])
@@ -818,6 +850,18 @@ export function DataStoreProvider({ children }: { children: ReactNode }) {
       .select('*')
       .then(({ data }) => {
         if (data) setContratistas(data.map(contratistaDeFila))
+      })
+    supabase
+      .from('brokers')
+      .select('*')
+      .then(({ data }) => {
+        if (data) setBrokers(data.map(brokerDeFila))
+      })
+    supabase
+      .from('personal_regional')
+      .select('*')
+      .then(({ data }) => {
+        if (data) setPersonalRegional(data.map(personalRegionalDeFila))
       })
     supabase
       .from('catalogo_sistemas_criticos')
@@ -998,13 +1042,19 @@ export function DataStoreProvider({ children }: { children: ReactNode }) {
         .select()
         .then(({ data, error }) => {
           if (error) {
-            console.error('[DEBUG notificaciones RLS] Error al generar notificaciones en Supabase:', {
-              error,
-              userIdDelContexto: userId,
-              authUidEnSesion: sessionData.session?.user.id ?? null,
-              sesionExiste: sessionData.session !== null,
-              destinatariosIntentados: [...new Set(nuevas.map((n) => n.destinatario_id))],
-            })
+            console.error(
+              '[DEBUG notificaciones RLS]',
+              JSON.stringify({
+                message: error.message,
+                code: error.code,
+                details: error.details,
+                hint: error.hint,
+                userIdDelContexto: userId,
+                authUidEnSesion: sessionData.session?.user.id ?? null,
+                sesionExiste: sessionData.session !== null,
+                destinatariosIntentados: [...new Set(nuevas.map((n) => n.destinatario_id))],
+              }),
+            )
             return
           }
           if (data) setNotificaciones((prev) => [...prev, ...data.map(notificacionDeFila)])
@@ -1023,6 +1073,10 @@ export function DataStoreProvider({ children }: { children: ReactNode }) {
       inquilinoById: (id) => inquilinos.find((i) => i.id === id),
       contratistas,
       contratistaById: (id) => contratistas.find((c) => c.id === id),
+
+      brokers,
+      brokerPorRegion: (region) => brokers.find((b) => b.region === region),
+      personalPorRegionYRol: (region, rol) => personalRegional.find((p) => p.region === region && p.rol === rol)?.nombreCompleto,
 
       catalogoSistemasCriticos,
       catalogoSistemaById: (id) => catalogoSistemasCriticos.find((c) => c.id === id),
@@ -1504,6 +1558,8 @@ export function DataStoreProvider({ children }: { children: ReactNode }) {
     parquesListos,
     inquilinos,
     contratistas,
+    brokers,
+    personalRegional,
     catalogoSistemasCriticos,
     sistemasCriticos,
     estudiosTecnicos,
