@@ -4,11 +4,10 @@ import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { useDataStore } from '@/context/DataStoreContext'
-import { parques } from '@/data'
 import { descargarPlantillaNaves, leerFilasDeArchivo, parsearFilasNaves, type FilaImportada } from '@/lib/importarNaves'
 
 export function ImportarNavesDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) {
-  const { naves, agregarNave } = useDataStore()
+  const { parques, naves, agregarNave } = useDataStore()
   const inputRef = useRef<HTMLInputElement>(null)
   const [nombreArchivo, setNombreArchivo] = useState<string | null>(null)
   const [filas, setFilas] = useState<FilaImportada[] | null>(null)

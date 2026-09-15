@@ -8,7 +8,6 @@ import { usePreferences } from '@/context/PreferencesContext'
 import { useDataStore } from '@/context/DataStoreContext'
 import { useAuth } from '@/context/AuthContext'
 import { esAdministrador, puedeVerBitacora } from '@/lib/permissions'
-import { parques, parqueById } from '@/data'
 import { cn } from '@/lib/utils'
 
 // Nave representativa por región — así el atajo de "Expediente Digital 360°"
@@ -22,7 +21,7 @@ const NAVE_REPRESENTATIVA_POR_REGION: Record<string, string> = {
 
 function SidebarBody({ collapsed, onNavigate }: { collapsed: boolean; onNavigate?: () => void }) {
   const { parqueSeleccionado, setParqueSeleccionado } = usePreferences()
-  const { ocupacionGlobalPct: ocupacion } = useDataStore()
+  const { parques, parqueById, ocupacionGlobalPct: ocupacion } = useDataStore()
   const { perfilActivo } = useAuth()
 
   const navItems = [

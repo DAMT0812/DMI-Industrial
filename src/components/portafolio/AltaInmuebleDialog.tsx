@@ -4,7 +4,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog'
 import { useDataStore } from '@/context/DataStoreContext'
-import { parques, type Nave, type EstatusOperativo } from '@/data'
+import type { Nave, EstatusOperativo } from '@/data'
 import { derivarCamposNave } from '@/lib/naveDefaults'
 
 const TIPOS_PROPIEDAD: Nave['tipoPropiedad'][] = ['Nave Industrial', 'Bodega Logística', 'Terreno', 'Nave BTS']
@@ -144,7 +144,7 @@ export function AltaInmuebleDialog({
   onOpenChange: (open: boolean) => void
   naveExistente?: Nave
 }) {
-  const { naves, agregarNave, editarNave } = useDataStore()
+  const { parques, naves, agregarNave, editarNave } = useDataStore()
   const [form, setForm] = useState<FormState>(ESTADO_INICIAL)
   const [intentoEnviar, setIntentoEnviar] = useState(false)
   const [confirmado, setConfirmado] = useState<string | null>(null)

@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Pencil } from 'lucide-react'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
-import { parqueById, type ColumnaKanban, type TareaOperativa } from '@/data'
+import type { ColumnaKanban, TareaOperativa } from '@/data'
 import { usePreferences } from '@/context/PreferencesContext'
 import { useDataStore } from '@/context/DataStoreContext'
 import { useAuth } from '@/context/AuthContext'
@@ -34,7 +34,7 @@ function iniciales(nombre: string) {
 
 function TareaCard({ tarea, onEditar, puedeEditar }: { tarea: TareaOperativa; onEditar: (tarea: TareaOperativa) => void; puedeEditar: boolean }) {
   const { moneda } = usePreferences()
-  const { naveById } = useDataStore()
+  const { naveById, parqueById } = useDataStore()
   const nave = naveById(tarea.naveId)
   const parque = nave ? parqueById(nave.parqueId) : undefined
 
@@ -80,7 +80,7 @@ function TareaCard({ tarea, onEditar, puedeEditar }: { tarea: TareaOperativa; on
 
 export function KanbanBoard() {
   const { perfilActivo } = useAuth()
-  const { tareasOperativas, naveById } = useDataStore()
+  const { tareasOperativas, naveById, parqueById } = useDataStore()
   const [tareaParaEditar, setTareaParaEditar] = useState<TareaOperativa | null>(null)
 
   return (

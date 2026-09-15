@@ -8,6 +8,7 @@ import type {
   Nave,
   Notificacion,
   OrdenTrabajo,
+  ParqueIndustrial,
   PausaOrden,
   ProyectoCapex,
   RenovacionContrato,
@@ -37,6 +38,12 @@ import * as mantenimientoKpis from '@/data/mantenimientoKpis'
 // así una edición se refleja automáticamente en cualquier pantalla que consuma estos
 // mismos hooks.
 interface DataStoreContextValue {
+  // Catálogo de portafolio (Fase 6o) — solo lectura, sin ámbito de región: RLS
+  // (select_parques) lo abre a cualquier perfil activo, y ninguna pantalla lo edita hoy.
+  parques: ParqueIndustrial[]
+  parquesListos: boolean
+  parqueById: (id: string) => ParqueIndustrial | undefined
+
   naves: Nave[]
   // false hasta que se resuelve el primer fetch a Supabase — úsalo para no tratar una
   // nave "todavía no cargada" como "no existe" (p. ej. al refrescar /naves/:id de golpe).
@@ -126,6 +133,17 @@ const DataStoreContext = createContext<DataStoreContextValue | null>(null)
 // entidades sigue como maqueta en memoria (overrides de sesión) hasta que les
 // toque su propia fase de migración. Estos mapeos traducen entre las columnas
 // snake_case de cada tabla y los tipos camelCase que ya consume toda la UI.
+function parqueDeFila(fila: Record<string, unknown>): ParqueIndustrial {
+  return {
+    id: fila.id as string,
+    nombre: fila.nombre as string,
+    region: fila.region as ParqueIndustrial['region'],
+    estado: fila.estado as string,
+    ciudad: fila.municipio as string,
+    corredorIndustrial: fila.corredor_industrial as string,
+  }
+}
+
 function naveDeFila(fila: Record<string, unknown>): Nave {
   return {
     id: fila.id as string,
@@ -543,6 +561,8 @@ function documentoAFila(cambios: Partial<DocumentoPermiso>): Record<string, unkn
 
 export function DataStoreProvider({ children }: { children: ReactNode }) {
   const { session } = useAuth()
+  const [parques, setParques] = useState<ParqueIndustrial[]>([])
+  const [parquesListos, setParquesListos] = useState(false)
   const [naves, setNaves] = useState<Nave[]>([])
   const [navesListas, setNavesListas] = useState(false)
   const [documentos, setDocumentos] = useState<DocumentoPermiso[]>([])
@@ -565,6 +585,8 @@ export function DataStoreProvider({ children }: { children: ReactNode }) {
   const userId = session?.user.id
   useEffect(() => {
     if (!userId) {
+      setParques([])
+      setParquesListos(false)
       setNaves([])
       setNavesListas(false)
       setDocumentos([])
@@ -581,6 +603,13 @@ export function DataStoreProvider({ children }: { children: ReactNode }) {
       setNotificaciones([])
       return
     }
+    supabase
+      .from('parques')
+      .select('*')
+      .then(({ data }) => {
+        if (data) setParques(data.map(parqueDeFila))
+        setParquesListos(true)
+      })
     supabase
       .from('naves')
       .select('*')
@@ -710,6 +739,10 @@ export function DataStoreProvider({ children }: { children: ReactNode }) {
   const value = useMemo<DataStoreContextValue>(() => {
     const capexAutorizadoTotal = capexAutorizadoTotalBase(proyectosCapex)
     return {
+      parques,
+      parquesListos,
+      parqueById: (id) => parques.find((p) => p.id === id),
+
       naves,
       navesListas,
       naveById: (id) => naves.find((n) => n.id === id),
@@ -1161,6 +1194,8 @@ export function DataStoreProvider({ children }: { children: ReactNode }) {
       proyectoMayorEnCurso: mantenimientoKpis.proyectoMayorEnCurso(proyectosCapex),
     }
   }, [
+    parques,
+    parquesListos,
     naves,
     navesListas,
     documentos,

@@ -7,7 +7,6 @@ import { EditarContratoDialog } from '@/components/expediente/EditarContratoDial
 import {
   inquilinoPorNaveId,
   inquilinoById,
-  parqueById,
   PM_POR_REGION,
   FACILITY_MANAGER_POR_REGION,
   brokerPorNaveId,
@@ -26,7 +25,7 @@ import { Mail, Pencil, Phone, ShieldAlert, Users } from 'lucide-react'
 export function ContratoArrendatarioTab({ nave }: { nave: Nave }) {
   const { moneda } = usePreferences()
   const { perfilActivo } = useAuth()
-  const { contratoPorNaveId, renovacionActivaPorContrato, resolverRenovacion } = useDataStore()
+  const { contratoPorNaveId, renovacionActivaPorContrato, resolverRenovacion, parqueById } = useDataStore()
   const contrato = contratoPorNaveId(nave.id)
   const renovacion = contrato ? renovacionActivaPorContrato(contrato.id) : undefined
   const inquilino = inquilinoById(inquilinoPorNaveId[nave.id] ?? '')

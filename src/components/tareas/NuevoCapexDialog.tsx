@@ -5,7 +5,6 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog'
 import { useDataStore } from '@/context/DataStoreContext'
-import { parqueById } from '@/data'
 
 interface FormState {
   naveId: string
@@ -26,7 +25,7 @@ const ESTADO_INICIAL: FormState = {
 }
 
 export function NuevoCapexDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) {
-  const { naves, agregarProyectoCapex } = useDataStore()
+  const { naves, parqueById, agregarProyectoCapex } = useDataStore()
   const [form, setForm] = useState<FormState>(ESTADO_INICIAL)
   const [creado, setCreado] = useState(false)
 

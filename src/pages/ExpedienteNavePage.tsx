@@ -14,7 +14,7 @@ import { usePreferences } from '@/context/PreferencesContext'
 import { useDataStore } from '@/context/DataStoreContext'
 import { useAuth } from '@/context/AuthContext'
 import { puedeEditarNave, puedeVerContrato } from '@/lib/permissions'
-import { parqueById, inquilinoPorNaveId, inquilinoById } from '@/data'
+import { inquilinoPorNaveId, inquilinoById } from '@/data'
 import { formatMoneda, formatSuperficie } from '@/lib/format'
 import { mesesRestantes } from '@/lib/dates'
 
@@ -22,16 +22,17 @@ export function ExpedienteNavePage() {
   const { naveId } = useParams()
   const { moneda, unidad } = usePreferences()
   const { perfilActivo } = useAuth()
-  const { naveById, navesListas, contratoPorNaveId } = useDataStore()
+  const { naveById, navesListas, parqueById, parquesListos, contratoPorNaveId } = useDataStore()
   const [editarAbierto, setEditarAbierto] = useState(false)
   const nave = naveId ? naveById(naveId) : undefined
 
+  // navesListas/parquesListos son false hasta que resuelve su primer fetch a Supabase —
+  // al refrescar esta página de golpe, "no encontrada todavía" no es lo mismo que "no
+  // existe"; también evita llamar parqueById() antes de que el catálogo de parques cargue.
+  if (!navesListas || !parquesListos) {
+    return <div className="flex min-h-[50vh] items-center justify-center text-sm text-muted-foreground">Cargando…</div>
+  }
   if (!nave) {
-    // navesListas es false hasta que resuelve el primer fetch a Supabase — al refrescar
-    // esta página de golpe, "no encontrada todavía" no es lo mismo que "no existe".
-    if (!navesListas) {
-      return <div className="flex min-h-[50vh] items-center justify-center text-sm text-muted-foreground">Cargando…</div>
-    }
     return <Navigate to="/" replace />
   }
 

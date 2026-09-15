@@ -15,7 +15,6 @@ import { puedeEditarOrden, puedeValidarCierreOrden } from '@/lib/permissions'
 import {
   matrizConfiabilidad,
   contratistas,
-  parqueById,
   contratistaById,
   pmCumplimientoPct,
   PM_CUMPLIDAS,
@@ -34,6 +33,7 @@ export function MantenimientoPage() {
   const {
     ordenesTrabajo,
     naveById,
+    parqueById,
     proyectoMayorEnCurso: proyectoMayor,
     correctivosActivos: correctivos,
     capexAutorizadoAnio,
@@ -176,7 +176,10 @@ export function MantenimientoPage() {
                     .filter((o) => perfilActivo.region === 'todas' || parqueById(naveById(o.naveId)!.parqueId)?.region === perfilActivo.region)
                     .map((o) => {
                       const nave = naveById(o.naveId)!
-                      const parque = parqueById(nave.parqueId)!
+                      // naves y parques se cargan con fetches independientes: en un refresh
+                      // en frío pueden resolver en cualquier orden.
+                      const parque = parqueById(nave.parqueId)
+                      if (!parque) return null
                       const contratista = contratistaById(o.contratistaId)
                       const estatus = o.estatus
                       return (

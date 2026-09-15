@@ -13,7 +13,7 @@ import { usePreferences } from '@/context/PreferencesContext'
 import { useDataStore } from '@/context/DataStoreContext'
 import { useAuth } from '@/context/AuthContext'
 import { puedeAltaNave } from '@/lib/permissions'
-import { parques, PRESUPUESTO_MENSUAL_USD, CAPEX_BOLSA_ANUAL_USD } from '@/data'
+import { PRESUPUESTO_MENSUAL_USD, CAPEX_BOLSA_ANUAL_USD } from '@/data'
 import { formatMoneda, formatPct, formatSuperficie } from '@/lib/format'
 import { useState } from 'react'
 
@@ -26,6 +26,7 @@ export function PortafolioPage() {
   const [altaAbierta, setAltaAbierta] = useState(false)
   const [importarAbierta, setImportarAbierta] = useState(false)
   const {
+    parques,
     alertas,
     requerimientosCriticos,
     vencimientosContrato90Dias,

@@ -2,7 +2,7 @@ import { Bell } from 'lucide-react'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { StatusBadge } from '@/components/shared/StatusBadge'
 import { useDataStore } from '@/context/DataStoreContext'
-import { parqueById, type ContratoArrendamiento, type DocumentoPermiso, type Nave, type Notificacion } from '@/data'
+import type { ContratoArrendamiento, DocumentoPermiso, Nave, Notificacion, ParqueIndustrial } from '@/data'
 import { cn } from '@/lib/utils'
 
 // entidadRelacionada guarda `{entidadTipo}:{entidadId}:{umbral}` (ver DataStoreContext) —
@@ -13,6 +13,7 @@ function describirNotificacion(
   documentos: DocumentoPermiso[],
   contratos: ContratoArrendamiento[],
   naveById: (id: string) => Nave | undefined,
+  parqueById: (id: string) => ParqueIndustrial | undefined,
 ): { titulo: string; ubicacion: string } | null {
   if (!n.entidadRelacionada) return null
   const [entidadTipo, entidadId, umbral] = n.entidadRelacionada.split(':')
@@ -43,7 +44,7 @@ function describirNotificacion(
 }
 
 export function NotificacionesMenu() {
-  const { misNotificaciones, notificacionesNoLeidas, marcarNotificacionLeida, marcarTodasNotificacionesLeidas, documentos, contratos, naveById } =
+  const { misNotificaciones, notificacionesNoLeidas, marcarNotificacionLeida, marcarTodasNotificacionesLeidas, documentos, contratos, naveById, parqueById } =
     useDataStore()
 
   return (
@@ -67,7 +68,7 @@ export function NotificacionesMenu() {
         <DropdownMenuSeparator />
         {misNotificaciones.length === 0 && <p className="px-1.5 py-3 text-center text-xs text-muted-foreground">Sin notificaciones.</p>}
         {misNotificaciones.slice(0, 15).map((n) => {
-          const info = describirNotificacion(n, documentos, contratos, naveById)
+          const info = describirNotificacion(n, documentos, contratos, naveById, parqueById)
           return (
             <DropdownMenuItem
               key={n.id}

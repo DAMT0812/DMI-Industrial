@@ -5,7 +5,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Button } from '@/components/ui/button'
 import { StatusBadge } from '@/components/shared/StatusBadge'
 import { AltaInmuebleDialog } from '@/components/portafolio/AltaInmuebleDialog'
-import { parqueById, inquilinoPorNaveId, inquilinoById, type EstatusOperativo, type Nave } from '@/data'
+import { inquilinoPorNaveId, inquilinoById, type EstatusOperativo, type Nave } from '@/data'
 import { usePreferences } from '@/context/PreferencesContext'
 import { useDataStore } from '@/context/DataStoreContext'
 import { useAuth } from '@/context/AuthContext'
@@ -19,7 +19,7 @@ const TODOS_ESTATUS = 'Todos' as const
 export function DirectorioNavesTable() {
   const { moneda, unidad, parqueSeleccionado } = usePreferences()
   const { perfilActivo } = useAuth()
-  const { naves, contratoPorNaveId } = useDataStore()
+  const { naves, parqueById, contratoPorNaveId } = useDataStore()
   const [busqueda, setBusqueda] = useState('')
   const [estatusFiltro, setEstatusFiltro] = useState<EstatusOperativo | typeof TODOS_ESTATUS>(TODOS_ESTATUS)
   const [pagina, setPagina] = useState(0)
@@ -41,7 +41,7 @@ export function DirectorioNavesTable() {
           inquilino?.nombreComercial.toLowerCase().includes(q)
         )
       })
-  }, [naves, busqueda, estatusFiltro, parqueSeleccionado, perfilActivo])
+  }, [naves, parqueById, busqueda, estatusFiltro, parqueSeleccionado, perfilActivo])
 
   const totalPaginas = Math.max(1, Math.ceil(filas.length / PAGE_SIZE))
   const paginaSegura = Math.min(pagina, totalPaginas - 1)
@@ -111,7 +111,10 @@ export function DirectorioNavesTable() {
           </TableHeader>
           <TableBody>
             {filasPagina.map((nave) => {
-              const parque = parqueById(nave.parqueId)!
+              // naves y parques se cargan con fetches independientes: en un refresh en frío
+              // pueden resolver en cualquier orden.
+              const parque = parqueById(nave.parqueId)
+              if (!parque) return null
               const inquilino = inquilinoById(inquilinoPorNaveId[nave.id] ?? '')
               const contrato = contratoPorNaveId(nave.id)
               const diasRestantes = contrato ? diasParaVencer(contrato.fechaVencimiento) : null

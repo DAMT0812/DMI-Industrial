@@ -6,7 +6,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog'
 import { StatusBadge } from '@/components/shared/StatusBadge'
 import { EditarCapexDialog } from '@/components/tareas/EditarCapexDialog'
-import { parqueById, type SentidoVoto } from '@/data'
+import type { SentidoVoto } from '@/data'
 import { usePreferences } from '@/context/PreferencesContext'
 import { useDataStore } from '@/context/DataStoreContext'
 import { useAuth } from '@/context/AuthContext'
@@ -21,6 +21,7 @@ export function CapexTable() {
   const {
     proyectosCapex,
     naveById,
+    parqueById,
     cotizacionesPorProyecto,
     votosPorProyecto,
     miVotoPorProyecto,
@@ -75,7 +76,8 @@ export function CapexTable() {
               // ya esté disponible en este render.
               const n = naveById(p.naveId)
               if (!n) return null
-              const pq = parqueById(n.parqueId)!
+              const pq = parqueById(n.parqueId)
+              if (!pq) return null
               return (
                 <TableRow key={p.id}>
                   <TableCell>
