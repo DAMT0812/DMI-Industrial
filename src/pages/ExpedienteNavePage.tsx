@@ -14,7 +14,6 @@ import { usePreferences } from '@/context/PreferencesContext'
 import { useDataStore } from '@/context/DataStoreContext'
 import { useAuth } from '@/context/AuthContext'
 import { puedeEditarNave, puedeVerContrato } from '@/lib/permissions'
-import { inquilinoPorNaveId, inquilinoById } from '@/data'
 import { formatMoneda, formatSuperficie } from '@/lib/format'
 import { mesesRestantes } from '@/lib/dates'
 
@@ -22,7 +21,7 @@ export function ExpedienteNavePage() {
   const { naveId } = useParams()
   const { moneda, unidad } = usePreferences()
   const { perfilActivo } = useAuth()
-  const { naveById, navesListas, parqueById, parquesListos, contratoPorNaveId } = useDataStore()
+  const { naveById, navesListas, parqueById, parquesListos, contratoPorNaveId, inquilinoById } = useDataStore()
   const [editarAbierto, setEditarAbierto] = useState(false)
   const nave = naveId ? naveById(naveId) : undefined
 
@@ -38,7 +37,7 @@ export function ExpedienteNavePage() {
 
   const parque = parqueById(nave.parqueId)!
   const contrato = contratoPorNaveId(nave.id)
-  const inquilino = inquilinoById(inquilinoPorNaveId[nave.id] ?? '')
+  const inquilino = inquilinoById(contrato?.inquilinoId ?? '')
   const mesesRestantesContrato = contrato ? mesesRestantes(contrato.fechaVencimiento) : null
 
   const fueraDeRegion = perfilActivo.region !== 'todas' && parque.region !== perfilActivo.region

@@ -5,8 +5,6 @@ import { StatusBadge } from '@/components/shared/StatusBadge'
 import { AprobarRechazarDialog } from '@/components/shared/AprobarRechazarDialog'
 import { EditarContratoDialog } from '@/components/expediente/EditarContratoDialog'
 import {
-  inquilinoPorNaveId,
-  inquilinoById,
   PM_POR_REGION,
   FACILITY_MANAGER_POR_REGION,
   brokerPorNaveId,
@@ -25,10 +23,10 @@ import { Mail, Pencil, Phone, ShieldAlert, Users } from 'lucide-react'
 export function ContratoArrendatarioTab({ nave }: { nave: Nave }) {
   const { moneda } = usePreferences()
   const { perfilActivo } = useAuth()
-  const { contratoPorNaveId, renovacionActivaPorContrato, resolverRenovacion, parqueById } = useDataStore()
+  const { contratoPorNaveId, renovacionActivaPorContrato, resolverRenovacion, parqueById, inquilinoById } = useDataStore()
   const contrato = contratoPorNaveId(nave.id)
   const renovacion = contrato ? renovacionActivaPorContrato(contrato.id) : undefined
-  const inquilino = inquilinoById(inquilinoPorNaveId[nave.id] ?? '')
+  const inquilino = inquilinoById(contrato?.inquilinoId ?? '')
   const region = parqueById(nave.parqueId)!.region
   const pm = PM_POR_REGION[region]
   const fm = FACILITY_MANAGER_POR_REGION[region]

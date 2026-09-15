@@ -1,10 +1,12 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
 import type {
+  Contratista,
   ContratoArrendamiento,
   CotizacionCapex,
   DocumentoPermiso,
   EstadoRenovacion,
   EvidenciaOrden,
+  Inquilino,
   Nave,
   Notificacion,
   OrdenTrabajo,
@@ -43,6 +45,12 @@ interface DataStoreContextValue {
   parques: ParqueIndustrial[]
   parquesListos: boolean
   parqueById: (id: string) => ParqueIndustrial | undefined
+
+  // Catálogos de portafolio (Fase 6p) — mismo criterio: solo lectura, sin ámbito.
+  inquilinos: Inquilino[]
+  inquilinoById: (id: string) => Inquilino | undefined
+  contratistas: Contratista[]
+  contratistaById: (id: string) => Contratista | undefined
 
   naves: Nave[]
   // false hasta que se resuelve el primer fetch a Supabase — úsalo para no tratar una
@@ -118,6 +126,7 @@ interface DataStoreContextValue {
   certificacionesLEEDCount: number
   cumplimientoSTPSPromedio: number
   desgloseIndustria: ReturnType<typeof portafolioKpis.desgloseIndustria>
+  totalInquilinosActivos: number
   serieNOIAnual: ReturnType<typeof portafolioKpis.serieNOIAnual>
 
   correctivosActivos: ReturnType<typeof mantenimientoKpis.correctivosActivos>
@@ -141,6 +150,31 @@ function parqueDeFila(fila: Record<string, unknown>): ParqueIndustrial {
     estado: fila.estado as string,
     ciudad: fila.municipio as string,
     corredorIndustrial: fila.corredor_industrial as string,
+  }
+}
+
+function inquilinoDeFila(fila: Record<string, unknown>): Inquilino {
+  return {
+    id: fila.id as string,
+    razonSocial: fila.razon_social as string,
+    nombreComercial: fila.nombre_comercial as string,
+    industria: fila.industria as Inquilino['industria'],
+    representanteLegal: fila.representante_legal as Inquilino['representanteLegal'],
+    plantManager: fila.plant_manager as Inquilino['plantManager'],
+    contactoMantenimiento: fila.contacto_mantenimiento as Inquilino['contactoMantenimiento'],
+    contactoCxP: fila.contacto_cxp as Inquilino['contactoCxP'],
+  }
+}
+
+function contratistaDeFila(fila: Record<string, unknown>): Contratista {
+  return {
+    id: fila.id as string,
+    nombre: fila.nombre as string,
+    especialidad: (fila.especialidades as string[])[0] ?? '',
+    calificacion: Number(fila.calificacion),
+    polizaRC: fila.poliza_rc as Contratista['polizaRC'],
+    trabajosDelAno: Number(fila.trabajos_del_ano),
+    porcentajeOnTime: Number(fila.porcentaje_on_time),
   }
 }
 
@@ -563,6 +597,8 @@ export function DataStoreProvider({ children }: { children: ReactNode }) {
   const { session } = useAuth()
   const [parques, setParques] = useState<ParqueIndustrial[]>([])
   const [parquesListos, setParquesListos] = useState(false)
+  const [inquilinos, setInquilinos] = useState<Inquilino[]>([])
+  const [contratistas, setContratistas] = useState<Contratista[]>([])
   const [naves, setNaves] = useState<Nave[]>([])
   const [navesListas, setNavesListas] = useState(false)
   const [documentos, setDocumentos] = useState<DocumentoPermiso[]>([])
@@ -587,6 +623,8 @@ export function DataStoreProvider({ children }: { children: ReactNode }) {
     if (!userId) {
       setParques([])
       setParquesListos(false)
+      setInquilinos([])
+      setContratistas([])
       setNaves([])
       setNavesListas(false)
       setDocumentos([])
@@ -609,6 +647,18 @@ export function DataStoreProvider({ children }: { children: ReactNode }) {
       .then(({ data }) => {
         if (data) setParques(data.map(parqueDeFila))
         setParquesListos(true)
+      })
+    supabase
+      .from('inquilinos')
+      .select('*')
+      .then(({ data }) => {
+        if (data) setInquilinos(data.map(inquilinoDeFila))
+      })
+    supabase
+      .from('contratistas')
+      .select('*')
+      .then(({ data }) => {
+        if (data) setContratistas(data.map(contratistaDeFila))
       })
     supabase
       .from('naves')
@@ -742,6 +792,11 @@ export function DataStoreProvider({ children }: { children: ReactNode }) {
       parques,
       parquesListos,
       parqueById: (id) => parques.find((p) => p.id === id),
+
+      inquilinos,
+      inquilinoById: (id) => inquilinos.find((i) => i.id === id),
+      contratistas,
+      contratistaById: (id) => contratistas.find((c) => c.id === id),
 
       naves,
       navesListas,
@@ -1184,7 +1239,8 @@ export function DataStoreProvider({ children }: { children: ReactNode }) {
       cobranzaAlDiaPct: portafolioKpis.cobranzaAlDiaPct(contratos),
       certificacionesLEEDCount: portafolioKpis.certificacionesLEEDCount(naves),
       cumplimientoSTPSPromedio: portafolioKpis.cumplimientoSTPSPromedio(naves),
-      desgloseIndustria: portafolioKpis.desgloseIndustria(naves),
+      desgloseIndustria: portafolioKpis.desgloseIndustria(naves, inquilinos, contratos),
+      totalInquilinosActivos: portafolioKpis.totalInquilinosActivos(inquilinos),
       serieNOIAnual: portafolioKpis.serieNOIAnual(contratos),
 
       correctivosActivos: mantenimientoKpis.correctivosActivos(ordenesTrabajo),
@@ -1196,6 +1252,8 @@ export function DataStoreProvider({ children }: { children: ReactNode }) {
   }, [
     parques,
     parquesListos,
+    inquilinos,
+    contratistas,
     naves,
     navesListas,
     documentos,

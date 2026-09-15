@@ -1,7 +1,7 @@
 import { naves } from './naves'
 import { contratos } from './contratos'
-import { inquilinos, inquilinoPorNaveId } from './inquilinos'
-import type { ContratoArrendamiento, Industria, Nave } from './types'
+import { inquilinos } from './inquilinos'
+import type { ContratoArrendamiento, Inquilino, Industria, Nave } from './types'
 
 export const totalNaves = (navesInput: Nave[] = naves) => navesInput.length
 export const navesOcupadas = (navesInput: Nave[] = naves) => navesInput.filter((n) => n.ocupada).length
@@ -33,26 +33,36 @@ export interface SegmentoIndustria {
   pct: number
 }
 
-export const desgloseIndustria = (navesInput: Nave[] = naves): SegmentoIndustria[] => {
+// La relación nave -> inquilino ya vive en contratos.inquilino_id (real desde Fase 6g);
+// aquí solo se resuelve vía el contrato de cada nave, sin un mapa aparte que mantener.
+export const desgloseIndustria = (
+  navesInput: Nave[] = naves,
+  inquilinosInput: Inquilino[] = inquilinos,
+  contratosInput: ContratoArrendamiento[] = contratos,
+): SegmentoIndustria[] => {
   const industrias: Industria[] = ['Manufactura Avanzada', 'Logística & E-commerce', 'Automotriz & Tier 1', 'Otros']
-  const totalInquilinos = inquilinos.length
+  const totalInquilinos = inquilinosInput.length
+  const inquilinoIdPorNave = new Map(contratosInput.map((c) => [c.naveId, c.inquilinoId]))
 
   return industrias.map((industria) => {
-    const inquilinosDeSegmento = inquilinos.filter((i) => i.industria === industria)
-    const naveIds = Object.entries(inquilinoPorNaveId)
-      .filter(([, inqId]) => inqId && inquilinosDeSegmento.some((i) => i.id === inqId))
-      .map(([naveId]) => naveId)
+    const inquilinosDeSegmento = inquilinosInput.filter((i) => i.industria === industria)
+    const naveIds = navesInput
+      .filter((n) => {
+        const inqId = inquilinoIdPorNave.get(n.id)
+        return inqId && inquilinosDeSegmento.some((i) => i.id === inqId)
+      })
+      .map((n) => n.id)
     const m2 = navesInput.filter((n) => naveIds.includes(n.id)).reduce((acc, n) => acc + n.gla, 0)
     return {
       industria,
       inquilinos: inquilinosDeSegmento.length,
       m2,
-      pct: Math.round((inquilinosDeSegmento.length / totalInquilinos) * 1000) / 10,
+      pct: totalInquilinos === 0 ? 0 : Math.round((inquilinosDeSegmento.length / totalInquilinos) * 1000) / 10,
     }
   })
 }
 
-export const totalInquilinosActivos = () => inquilinos.length
+export const totalInquilinosActivos = (inquilinosInput: Inquilino[] = inquilinos) => inquilinosInput.length
 
 // Serie mensual de NOI — ejecutado (ene–sep 2026) + proyección (oct–dic 2026).
 export interface PuntoNOI {

@@ -4,7 +4,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Button } from '@/components/ui/button'
 import { StatusBadge } from '@/components/shared/StatusBadge'
 import { DocumentoDialog } from '@/components/shared/DocumentoDialog'
-import { estudiosPorNave, propietarioPorNave, contratistas, type Nave } from '@/data'
+import { estudiosPorNave, propietarioPorNave, type Nave } from '@/data'
 import { useDataStore } from '@/context/DataStoreContext'
 import { useAuth } from '@/context/AuthContext'
 import { puedeEditarDocumentoObra } from '@/lib/permissions'
@@ -21,9 +21,11 @@ const PLANOS = [
 ]
 
 export function ObraConstruccionTab({ nave }: { nave: Nave }) {
-  const { documentosPorNave, editarDocumento } = useDataStore()
+  const { documentosPorNave, editarDocumento, contratistas } = useDataStore()
   const { perfilActivo } = useAuth()
   const puedeEditar = puedeEditarDocumentoObra(perfilActivo.rol)
+  // contratistas se carga con un fetch independiente: en un refresh en frío puede resolver
+  // después de que esta pestaña ya esté montada.
   const contratistaObra = contratistas[nave.id.charCodeAt(nave.id.length - 1) % 2 === 0 ? 7 : 9]
   const inversionCapExEjecutada = Math.round(nave.superficieConstruccion * 620)
   const permisos = documentosPorNave(nave.id).filter((d) => OBRA_TIPOS.includes(d.tipo))
@@ -44,7 +46,7 @@ export function ObraConstruccionTab({ nave }: { nave: Nave }) {
             <CardTitle className="text-sm font-semibold">Licitación / Contratista Principal</CardTitle>
           </CardHeader>
           <CardContent className="flex flex-col gap-2.5 text-sm">
-            <Fila etiqueta="Razón Social" valor={contratistaObra.nombre} />
+            <Fila etiqueta="Razón Social" valor={contratistaObra?.nombre ?? '—'} />
             <Fila etiqueta="Esquema de Contratación" valor="Llave en Mano (EPC)" />
             <Fila etiqueta="Cédula de Obra" valor={`CO-${nave.folio}`} />
             <Fila etiqueta="Inversión CapEx Ejecutada" valor={`$${inversionCapExEjecutada.toLocaleString('es-MX')} USD`} tabular />

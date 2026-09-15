@@ -14,8 +14,6 @@ import { useAuth } from '@/context/AuthContext'
 import { puedeEditarOrden, puedeValidarCierreOrden } from '@/lib/permissions'
 import {
   matrizConfiabilidad,
-  contratistas,
-  contratistaById,
   pmCumplimientoPct,
   PM_CUMPLIDAS,
   PM_META_ANUAL,
@@ -34,6 +32,8 @@ export function MantenimientoPage() {
     ordenesTrabajo,
     naveById,
     parqueById,
+    contratistas,
+    contratistaById,
     proyectoMayorEnCurso: proyectoMayor,
     correctivosActivos: correctivos,
     capexAutorizadoAnio,

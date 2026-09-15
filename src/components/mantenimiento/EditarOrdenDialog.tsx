@@ -8,7 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { StatusBadge } from '@/components/shared/StatusBadge'
 import { useDataStore } from '@/context/DataStoreContext'
 import { supabase } from '@/lib/supabaseClient'
-import { contratistas, SLA_HORAS, type OrdenTrabajo, type PrioridadTicket } from '@/data'
+import { SLA_HORAS, type OrdenTrabajo, type PrioridadTicket } from '@/data'
 
 const PRIORIDADES: PrioridadTicket[] = ['Crítica', 'Alta', 'Media', 'Baja']
 const BUCKET = 'documentos'
@@ -40,7 +40,7 @@ export function EditarOrdenDialog({
   onOpenChange: (open: boolean) => void
   orden: OrdenTrabajo
 }) {
-  const { editarOrden, pausaAbiertaPorOrden, pausarOrden, reanudarOrden, evidenciaPendientePorOrden, enviarEvidencia } = useDataStore()
+  const { editarOrden, pausaAbiertaPorOrden, pausarOrden, reanudarOrden, evidenciaPendientePorOrden, enviarEvidencia, contratistas } = useDataStore()
   const [form, setForm] = useState<FormState>(() => estadoDesdeOrden(orden))
   const [guardado, setGuardado] = useState(false)
   const [motivoPausa, setMotivoPausa] = useState('')
