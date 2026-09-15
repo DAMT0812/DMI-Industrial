@@ -18,6 +18,7 @@ import type {
   ParqueIndustrial,
   PausaOrden,
   PersonalRegional,
+  PrioridadTicket,
   PropietarioLegal,
   PropuestaProveedor,
   ProyectoCapex,
@@ -68,6 +69,15 @@ interface DataStoreContextValue {
   brokers: Broker[]
   brokerPorRegion: (region: ParqueIndustrial['region']) => Broker | undefined
   personalPorRegionYRol: (region: ParqueIndustrial['region'], rol: PersonalRegional['rol']) => string | undefined
+
+  // Constantes de presupuesto/meta (Fase 6v) — antes hardcodeadas en src/data/, ahora en
+  // `parametros_configurables` (solo Administrador del Sistema/Superadministrador puede
+  // editarlas por RLS; aquí solo se leen).
+  capexBolsaAnualUSD: number
+  presupuestoMensualUSD: number
+  opexPresupuestoAnualUSD: number
+  slaMetaHoras: number
+  slaHoras: Record<PrioridadTicket, number>
 
   // Catálogo de tipos de sistema crítico + inventario real por nave (Fase 6q).
   catalogoSistemasCriticos: CatalogoSistemaCritico[]
@@ -794,6 +804,16 @@ export function DataStoreProvider({ children }: { children: ReactNode }) {
   const [perfilesPorId, setPerfilesPorId] = useState<Record<string, string>>({})
   const [notificaciones, setNotificaciones] = useState<Notificacion[]>([])
 
+  // Constantes de presupuesto/meta (Fase 6v): viven en `parametros_configurables`, ya
+  // editables sin redeploy. El valor inicial de cada useState es el mismo que tenían
+  // hardcodeado antes de esta fase — sirve de respaldo mientras resuelve el fetch, para
+  // que ninguna pantalla parpadee o divida por un valor todavía no cargado.
+  const [capexBolsaAnualUSD, setCapexBolsaAnualUSD] = useState(12_500_000)
+  const [presupuestoMensualUSD, setPresupuestoMensualUSD] = useState(1_905_000)
+  const [opexPresupuestoAnualUSD, setOpexPresupuestoAnualUSD] = useState(4_200_000)
+  const [slaMetaHoras, setSlaMetaHoras] = useState(36)
+  const [slaHoras, setSlaHoras] = useState<Record<PrioridadTicket, number>>({ Crítica: 4, Alta: 24, Media: 48, Baja: 72 })
+
   // RLS exige sesión autenticada para leer naves/documentos: se espera a que exista
   // sesión antes de pedirlas, y se vuelven a pedir en cada cambio de sesión (login,
   // logout, cambio de cuenta) — si no, un login recién hecho se queda con listas
@@ -856,6 +876,20 @@ export function DataStoreProvider({ children }: { children: ReactNode }) {
       .select('*')
       .then(({ data }) => {
         if (data) setBrokers(data.map(brokerDeFila))
+      })
+    supabase
+      .from('parametros_configurables')
+      .select('*')
+      .then(({ data }) => {
+        if (!data) return
+        for (const fila of data) {
+          const valor = fila.valor as unknown
+          if (fila.clave === 'capex_bolsa_anual_usd') setCapexBolsaAnualUSD(Number(valor))
+          if (fila.clave === 'presupuesto_mensual_usd') setPresupuestoMensualUSD(Number(valor))
+          if (fila.clave === 'opex_presupuesto_anual_usd') setOpexPresupuestoAnualUSD(Number(valor))
+          if (fila.clave === 'sla_meta_horas') setSlaMetaHoras(Number(valor))
+          if (fila.clave === 'sla_horas') setSlaHoras(valor as Record<PrioridadTicket, number>)
+        }
       })
     supabase
       .from('personal_regional')
@@ -1077,6 +1111,12 @@ export function DataStoreProvider({ children }: { children: ReactNode }) {
       brokers,
       brokerPorRegion: (region) => brokers.find((b) => b.region === region),
       personalPorRegionYRol: (region, rol) => personalRegional.find((p) => p.region === region && p.rol === rol)?.nombreCompleto,
+
+      capexBolsaAnualUSD,
+      presupuestoMensualUSD,
+      opexPresupuestoAnualUSD,
+      slaMetaHoras,
+      slaHoras,
 
       catalogoSistemasCriticos,
       catalogoSistemaById: (id) => catalogoSistemasCriticos.find((c) => c.id === id),
@@ -1401,7 +1441,7 @@ export function DataStoreProvider({ children }: { children: ReactNode }) {
           })
       },
       capexAutorizadoTotal,
-      capexDisponiblePct: capexDisponiblePctBase(proyectosCapex),
+      capexDisponiblePct: capexDisponiblePctBase(proyectosCapex, capexBolsaAnualUSD),
 
       capexCotizaciones,
       cotizacionesPorProyecto: (proyectoId) => capexCotizaciones.filter((c) => c.proyectoId === proyectoId),
@@ -1547,7 +1587,7 @@ export function DataStoreProvider({ children }: { children: ReactNode }) {
       ordenesValidadas: mantenimientoKpis.ordenesValidadas(ordenesTrabajo),
       ordenesValidadasPct: mantenimientoKpis.ordenesValidadasPct(ordenesTrabajo),
       opexEjecutadoUSD: mantenimientoKpis.opexEjecutadoUSD(ordenesTrabajo),
-      opexEjecutadoPct: mantenimientoKpis.opexEjecutadoPct(ordenesTrabajo),
+      opexEjecutadoPct: mantenimientoKpis.opexEjecutadoPct(ordenesTrabajo, opexPresupuestoAnualUSD),
       capexProyectosMayores: mantenimientoKpis.capexProyectosMayores(proyectosCapex),
       capexAutorizadoAnio: mantenimientoKpis.capexAutorizadoAnio(proyectosCapex),
       slaPromedioResolucionHoras: mantenimientoKpis.slaPromedioResolucionHoras(ordenesTrabajo),
@@ -1560,6 +1600,11 @@ export function DataStoreProvider({ children }: { children: ReactNode }) {
     contratistas,
     brokers,
     personalRegional,
+    capexBolsaAnualUSD,
+    presupuestoMensualUSD,
+    opexPresupuestoAnualUSD,
+    slaMetaHoras,
+    slaHoras,
     catalogoSistemasCriticos,
     sistemasCriticos,
     estudiosTecnicos,

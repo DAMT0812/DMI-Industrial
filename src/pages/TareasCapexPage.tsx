@@ -13,13 +13,12 @@ import { usePreferences } from '@/context/PreferencesContext'
 import { useDataStore } from '@/context/DataStoreContext'
 import { useAuth } from '@/context/AuthContext'
 import { puedeEditarCapex } from '@/lib/permissions'
-import { CAPEX_BOLSA_ANUAL_USD } from '@/data'
 import { formatMoneda, formatPct } from '@/lib/format'
 
 export function TareasCapexPage() {
   const { moneda } = usePreferences()
   const { perfilActivo } = useAuth()
-  const { alertas, proyectosCapex, tareasVivas, capexAutorizadoTotal, capexDisponiblePct, solicitudesCotizacion } = useDataStore()
+  const { alertas, proyectosCapex, tareasVivas, capexAutorizadoTotal, capexDisponiblePct, solicitudesCotizacion, capexBolsaAnualUSD } = useDataStore()
   const [nuevoCapexAbierto, setNuevoCapexAbierto] = useState(false)
 
   const vencimientosCriticos = alertas.filter((a) => a.urgencia === 'Crítico Inminente' && a.tipo !== 'SLA de Ticket').length
@@ -85,7 +84,7 @@ export function TareasCapexPage() {
             <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
               <h3 className="text-sm font-semibold text-foreground">Cartera de Proyectos de Inversión Patrimonial (CapEx)</h3>
               <span className="tabular text-xs text-muted-foreground">
-                Bolsa autorizada {formatMoneda(CAPEX_BOLSA_ANUAL_USD, moneda)} · {formatPct(capexDisponiblePct)} disponible ·{' '}
+                Bolsa autorizada {formatMoneda(capexBolsaAnualUSD, moneda)} · {formatPct(capexDisponiblePct)} disponible ·{' '}
                 {formatMoneda(capexAutorizadoTotal, moneda)} comprometido
               </span>
             </div>

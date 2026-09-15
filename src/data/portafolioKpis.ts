@@ -14,7 +14,6 @@ export const glaDisponible = (navesInput: Nave[] = naves) => navesInput.filter((
 export const ingresoMensualTotalUSD = (contratosInput: ContratoArrendamiento[] = contratos) =>
   contratosInput.reduce((acc, c) => acc + c.rentaBaseMensual + c.cam, 0)
 
-export const PRESUPUESTO_MENSUAL_USD = 1_905_000
 export const CAP_RATE_PCT = 8.4
 
 export const cobranzaAlDiaPct = (contratosInput: ContratoArrendamiento[] = contratos) => {

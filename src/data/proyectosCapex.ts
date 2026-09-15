@@ -1,8 +1,5 @@
 import type { CotizacionCapex, ProyectoCapex } from './types'
 
-// Bolsa de CapEx autorizada para el ejercicio fiscal en curso (USD).
-export const CAPEX_BOLSA_ANUAL_USD = 12_500_000
-
 // Las cotizaciones viven en su propia tabla (capex_cotizaciones, Fase 6i) — aquí se
 // mantienen junto a cada proyecto solo para autoría del seed; generate-seed.ts las lee
 // de `capexCotizacionesSeed`, no del `ProyectoCapex` real que consume la app.
@@ -139,7 +136,7 @@ export const capexAutorizadoTotal = (proyectosInput: ProyectoCapex[] = proyectos
     .filter((p) => p.estatusComite === 'Aprobado por Dirección' || p.estatusComite === 'En Ejecución' || p.estatusComite === 'Concluido')
     .reduce((acc, p) => acc + p.inversionEstimada, 0)
 
-export const capexDisponiblePct = (proyectosInput: ProyectoCapex[] = proyectosCapex) => {
+export const capexDisponiblePct = (proyectosInput: ProyectoCapex[] = proyectosCapex, capexBolsaAnualUSD = 12_500_000) => {
   const usado = capexAutorizadoTotal(proyectosInput)
-  return Math.round(((CAPEX_BOLSA_ANUAL_USD - usado) / CAPEX_BOLSA_ANUAL_USD) * 100)
+  return Math.round(((capexBolsaAnualUSD - usado) / capexBolsaAnualUSD) * 100)
 }

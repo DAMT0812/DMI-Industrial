@@ -23,24 +23,21 @@ export const correctivosActivos = (ordenesInput: OrdenTrabajo[] = ordenesTrabajo
   }
 }
 
-// El presupuesto anual sigue sin una fuente real (Fase 6t no toca metas/presupuestos,
-// solo lo ya calculable) — el ejecutado sí: suma de costoEstimado de toda orden que no
-// se canceló (una cancelada nunca incurrió gasto), usando el estimado como aproximación
-// ya que el esquema no guarda un costo real facturado por separado.
-export const OPEX_PRESUPUESTO_ANUAL_USD = 4_200_000
-
+// El ejecutado: suma de costoEstimado de toda orden que no se canceló (una cancelada
+// nunca incurrió gasto), usando el estimado como aproximación ya que el esquema no
+// guarda un costo real facturado por separado. El presupuesto anual (meta) vive en
+// `parametros_configurables` (Fase 6v) — 4_200_000 abajo es solo el valor de respaldo
+// si ese fetch no ha resuelto aún.
 export const opexEjecutadoUSD = (ordenesInput: OrdenTrabajo[] = ordenesTrabajo) =>
   ordenesInput.filter((o) => o.estatus !== 'Cancelada').reduce((acc, o) => acc + o.costoEstimado, 0)
 
-export const opexEjecutadoPct = (ordenesInput: OrdenTrabajo[] = ordenesTrabajo) =>
-  Math.round((opexEjecutadoUSD(ordenesInput) / OPEX_PRESUPUESTO_ANUAL_USD) * 1000) / 10
+export const opexEjecutadoPct = (ordenesInput: OrdenTrabajo[] = ordenesTrabajo, opexPresupuestoAnualUSD = 4_200_000) =>
+  Math.round((opexEjecutadoUSD(ordenesInput) / opexPresupuestoAnualUSD) * 1000) / 10
 
 export const capexProyectosMayores = (proyectosInput: ProyectoCapex[] = proyectosCapex) =>
   proyectosInput.filter((p) => p.estatusComite === 'Aprobado por Dirección' || p.estatusComite === 'En Ejecución').length
 
 export const capexAutorizadoAnio = (proyectosInput: ProyectoCapex[] = proyectosCapex) => capexAutorizadoTotal(proyectosInput)
-
-export const SLA_META_HORAS = 36
 
 export const slaPromedioResolucionHoras = (ordenesInput: OrdenTrabajo[] = ordenesTrabajo) => {
   const cerradas = ordenesInput.filter((o) => o.estatus === 'Validado' && o.fechaCierre)

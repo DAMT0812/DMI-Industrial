@@ -13,7 +13,6 @@ import { usePreferences } from '@/context/PreferencesContext'
 import { useDataStore } from '@/context/DataStoreContext'
 import { useAuth } from '@/context/AuthContext'
 import { puedeAltaNave } from '@/lib/permissions'
-import { PRESUPUESTO_MENSUAL_USD, CAPEX_BOLSA_ANUAL_USD } from '@/data'
 import { formatMoneda, formatPct, formatSuperficie } from '@/lib/format'
 import { useState } from 'react'
 
@@ -40,11 +39,13 @@ export function PortafolioPage() {
     certificacionesLEEDCount,
     cumplimientoSTPSPromedio,
     capexAutorizadoTotal,
+    capexBolsaAnualUSD,
+    presupuestoMensualUSD,
   } = useDataStore()
 
   const ocupacion = ocupacionGlobalPct
   const ingresoMensual = ingresoMensualTotalUSD
-  const varianzaPresupuesto = Math.round(((ingresoMensual - PRESUPUESTO_MENSUAL_USD) / PRESUPUESTO_MENSUAL_USD) * 1000) / 10
+  const varianzaPresupuesto = Math.round(((ingresoMensual - presupuestoMensualUSD) / presupuestoMensualUSD) * 1000) / 10
   const requerimientos = requerimientosCriticos
 
   return (
@@ -157,7 +158,7 @@ export function PortafolioPage() {
           etiqueta="CapEx Programado del Año"
           icono={DollarSign}
           valor={formatMoneda(capexAutorizadoTotal, moneda)}
-          detalle={`de ${formatMoneda(CAPEX_BOLSA_ANUAL_USD, moneda)} autorizados`}
+          detalle={`de ${formatMoneda(capexBolsaAnualUSD, moneda)} autorizados`}
         />
         <KpiCard
           etiqueta="Certificaciones LEED & ESG"

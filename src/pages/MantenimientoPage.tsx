@@ -12,7 +12,7 @@ import { usePreferences } from '@/context/PreferencesContext'
 import { useDataStore } from '@/context/DataStoreContext'
 import { useAuth } from '@/context/AuthContext'
 import { puedeEditarOrden, puedeValidarCierreOrden } from '@/lib/permissions'
-import { OPEX_PRESUPUESTO_ANUAL_USD, SLA_META_HORAS, type OrdenTrabajo } from '@/data'
+import { type OrdenTrabajo } from '@/data'
 import { formatMoneda, formatPct } from '@/lib/format'
 
 export function MantenimientoPage() {
@@ -35,6 +35,8 @@ export function MantenimientoPage() {
     capexProyectosMayores,
     slaPromedioResolucionHoras,
     resolverEvidenciaCierre,
+    opexPresupuestoAnualUSD,
+    slaMetaHoras,
   } = useDataStore()
   const naveProyecto = proyectoMayor ? naveById(proyectoMayor.naveId) : null
   const parqueProyecto = naveProyecto ? parqueById(naveProyecto.parqueId) : null
@@ -84,7 +86,7 @@ export function MantenimientoPage() {
           etiqueta="OpEx YTD vs Presupuesto"
           icono={DollarSign}
           valor={formatMoneda(opexEjecutadoUSD, moneda)}
-          detalle={`${formatPct(opexEjecutadoPct)} de ${formatMoneda(OPEX_PRESUPUESTO_ANUAL_USD, moneda)}`}
+          detalle={`${formatPct(opexEjecutadoPct)} de ${formatMoneda(opexPresupuestoAnualUSD, moneda)}`}
           progreso={opexEjecutadoPct}
         />
         <KpiCard
@@ -97,7 +99,7 @@ export function MantenimientoPage() {
           etiqueta="SLA Promedio de Resolución"
           icono={Clock}
           valor={`${slaPromedioResolucionHoras} h`}
-          detalle={`Meta interna ${SLA_META_HORAS} h`}
+          detalle={`Meta interna ${slaMetaHoras} h`}
         />
       </div>
 
