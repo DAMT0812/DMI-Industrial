@@ -1,12 +1,4 @@
-import type { Region, Usuario } from './types'
-
-export const usuarioActual: Usuario = {
-  nombre: 'Ing. Arq. Rodrigo M.',
-  puesto: 'Director de Operaciones',
-  rol: 'Dirección',
-  navesAsignadas: 'todas',
-  avatarIniciales: 'RM',
-}
+import type { Region } from './types'
 
 // Equipo interno de Property/Facility Management referenciado como responsable
 // en alertas, tareas del Kanban y órdenes de trabajo — mismo roster en toda la app.

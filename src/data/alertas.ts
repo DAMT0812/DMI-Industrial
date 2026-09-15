@@ -175,9 +175,7 @@ export function calcularAlertas(
   ].sort((a, b) => a.diasParaVencer - b.diasParaVencer)
 }
 
-export const alertas: AlertaVencimiento[] = calcularAlertas()
-
-export const requerimientosCriticos = (alertasInput: AlertaVencimiento[] = alertas) =>
+export const requerimientosCriticos = (alertasInput: AlertaVencimiento[]) =>
   alertasInput.filter((a) => a.urgencia === 'Crítico Inminente').length
 
 export const vencimientosContrato90Dias = (contratosInput: typeof contratos = contratos) =>

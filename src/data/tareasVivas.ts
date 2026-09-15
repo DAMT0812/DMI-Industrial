@@ -37,8 +37,3 @@ export function calcularTareasVivas(ordenesInput: typeof ordenesTrabajo = ordene
       } satisfies TareaViva
     })
 }
-
-export const tareasVivas: TareaViva[] = calcularTareasVivas()
-
-export const tareasVivasPorColumna = (columna: TareaViva['columna'], tareasInput: TareaViva[] = tareasVivas) =>
-  tareasInput.filter((t) => t.columna === columna)
