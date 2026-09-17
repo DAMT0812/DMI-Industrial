@@ -17,12 +17,14 @@ import type {
   OrdenTrabajo,
   ParqueIndustrial,
   PausaOrden,
+  PermisoDeRol,
   PersonalRegional,
   PrioridadTicket,
   PropietarioLegal,
   PropuestaProveedor,
   ProyectoCapex,
   RenovacionContrato,
+  RolInfo,
   SentidoVoto,
   SistemaCriticoNave,
   SolicitudCotizacion,
@@ -33,6 +35,7 @@ import type { SistemaConfiabilidad } from '@/data/matrizConfiabilidad'
 import { supabase } from '@/lib/supabaseClient'
 import { registrarBitacora } from '@/lib/bitacora'
 import { useAuth } from '@/context/AuthContext'
+import { _establecerPermisosPorRol } from '@/lib/permissions'
 import { documentosPorNave as documentosPorNaveBase } from '@/data/documentos'
 import {
   proyectoCapexPorNave as proyectoCapexPorNaveBase,
@@ -69,6 +72,16 @@ interface DataStoreContextValue {
   brokers: Broker[]
   brokerPorRegion: (region: ParqueIndustrial['region']) => Broker | undefined
   personalPorRegionYRol: (region: ParqueIndustrial['region'], rol: PersonalRegional['rol']) => string | undefined
+
+  // Roles y permisos como catálogo (Fase 7a, Subfase 4/4) — reemplaza la unión fija de
+  // TypeScript + comparaciones hardcodeadas en permissions.ts (migraciones 0019/0020).
+  roles: RolInfo[]
+  permisosPorRol: PermisoDeRol[]
+  crearRol: (nombre: string) => Promise<{ error: string | null }>
+  eliminarRol: (nombre: string) => Promise<{ error: string | null }>
+  renombrarRol: (nombreActual: string, nombreNuevo: string) => Promise<{ error: string | null }>
+  otorgarPermiso: (rol: string, permiso: string) => void
+  revocarPermiso: (rol: string, permiso: string) => void
 
   // Constantes de presupuesto/meta (Fase 6v) — antes hardcodeadas en src/data/, ahora en
   // `parametros_configurables` (solo Administrador del Sistema/Superadministrador puede
@@ -240,6 +253,20 @@ function personalRegionalDeFila(fila: Record<string, unknown>): PersonalRegional
     region: fila.region as PersonalRegional['region'],
     rol: fila.rol as PersonalRegional['rol'],
     nombreCompleto: fila.nombre_completo as string,
+  }
+}
+
+function rolDeFila(fila: Record<string, unknown>): RolInfo {
+  return {
+    nombre: fila.nombre as string,
+    esSistema: Boolean(fila.es_sistema),
+  }
+}
+
+function permisoDeRolDeFila(fila: Record<string, unknown>): PermisoDeRol {
+  return {
+    rol: fila.rol as string,
+    permiso: fila.permiso as string,
   }
 }
 
@@ -783,6 +810,8 @@ export function DataStoreProvider({ children }: { children: ReactNode }) {
   const [contratistas, setContratistas] = useState<Contratista[]>([])
   const [brokers, setBrokers] = useState<Broker[]>([])
   const [personalRegional, setPersonalRegional] = useState<PersonalRegional[]>([])
+  const [roles, setRoles] = useState<RolInfo[]>([])
+  const [permisosPorRol, setPermisosPorRol] = useState<PermisoDeRol[]>([])
   const [catalogoSistemasCriticos, setCatalogoSistemasCriticos] = useState<CatalogoSistemaCritico[]>([])
   const [sistemasCriticos, setSistemasCriticos] = useState<SistemaCriticoNave[]>([])
   const [estudiosTecnicos, setEstudiosTecnicos] = useState<EstudioTecnico[]>([])
@@ -899,6 +928,18 @@ export function DataStoreProvider({ children }: { children: ReactNode }) {
       .select('*')
       .then(({ data }) => {
         if (data) setPersonalRegional(data.map(personalRegionalDeFila))
+      })
+    supabase
+      .from('roles')
+      .select('*')
+      .then(({ data }) => {
+        if (data) setRoles(data.map(rolDeFila))
+      })
+    supabase
+      .from('permisos_por_rol')
+      .select('*')
+      .then(({ data }) => {
+        if (data) setPermisosPorRol(data.map(permisoDeRolDeFila))
       })
     supabase
       .from('catalogo_sistemas_criticos')
@@ -1038,6 +1079,20 @@ export function DataStoreProvider({ children }: { children: ReactNode }) {
       })
   }, [userId])
 
+  // permissions.ts no puede llamar useDataStore() (son funciones planas, no componentes) --
+  // en vez de cambiar la firma de sus 13 funciones para que reciban el mapa como argumento
+  // (tocaría ~15 archivos que las llaman), se sincroniza aquí, cada vez que cambia
+  // permisosPorRol, un objeto a nivel de módulo que esas funciones sí pueden leer.
+  useEffect(() => {
+    if (permisosPorRol.length === 0) return
+    const mapa: Record<string, Set<string>> = {}
+    for (const fila of permisosPorRol) {
+      if (!mapa[fila.rol]) mapa[fila.rol] = new Set()
+      mapa[fila.rol].add(fila.permiso)
+    }
+    _establecerPermisosPorRol(mapa)
+  }, [permisosPorRol])
+
   const alertas = useMemo(() => calcularAlertas(documentos, contratos, ordenesTrabajo), [documentos, contratos, ordenesTrabajo])
   const tareasVivas = useMemo(() => calcularTareasVivas(ordenesTrabajo), [ordenesTrabajo])
 
@@ -1117,6 +1172,66 @@ export function DataStoreProvider({ children }: { children: ReactNode }) {
       brokers,
       brokerPorRegion: (region) => brokers.find((b) => b.region === region),
       personalPorRegionYRol: (region, rol) => personalRegional.find((p) => p.region === region && p.rol === rol)?.nombreCompleto,
+
+      roles,
+      permisosPorRol,
+      crearRol: async (nombre) => {
+        const { error } = await supabase.from('roles').insert({ nombre })
+        if (error) return { error: error.message }
+        setRoles((prev) => [...prev, { nombre, esSistema: false }])
+        registrarBitacora('roles', nombre, 'alta', `Rol creado: ${nombre}`)
+        return { error: null }
+      },
+      eliminarRol: async (nombre) => {
+        const { error } = await supabase.from('roles').delete().eq('nombre', nombre)
+        if (error) {
+          // La FK de profiles.rol -> roles(nombre) (sin "on delete") bloquea a nivel de base
+          // de datos eliminar un rol que todavía tenga usuarios asignados.
+          return { error: error.message.includes('foreign key') ? 'No puedes eliminar un rol que sigue asignado a algún usuario.' : error.message }
+        }
+        setRoles((prev) => prev.filter((r) => r.nombre !== nombre))
+        setPermisosPorRol((prev) => prev.filter((p) => p.rol !== nombre))
+        registrarBitacora('roles', nombre, 'baja', `Rol eliminado: ${nombre}`)
+        return { error: null }
+      },
+      renombrarRol: async (nombreActual, nombreNuevo) => {
+        const { error } = await supabase.from('roles').update({ nombre: nombreNuevo }).eq('nombre', nombreActual)
+        if (error) return { error: error.message }
+        // La FK tiene "on update cascade": profiles.rol y permisos_por_rol.rol se actualizan
+        // solos en la base; aquí solo se refleja lo mismo en el estado local.
+        setRoles((prev) => prev.map((r) => (r.nombre === nombreActual ? { ...r, nombre: nombreNuevo } : r)))
+        setPermisosPorRol((prev) => prev.map((p) => (p.rol === nombreActual ? { ...p, rol: nombreNuevo } : p)))
+        registrarBitacora('roles', nombreNuevo, 'edicion', `Rol renombrado: ${nombreActual} → ${nombreNuevo}`)
+        return { error: null }
+      },
+      otorgarPermiso: (rol, permiso) => {
+        setPermisosPorRol((prev) => (prev.some((p) => p.rol === rol && p.permiso === permiso) ? prev : [...prev, { rol, permiso }]))
+        supabase
+          .from('permisos_por_rol')
+          .insert({ rol, permiso })
+          .then(({ error }) => {
+            if (error) {
+              console.error('Error al otorgar permiso:', error.message)
+              return
+            }
+            registrarBitacora('permisos_por_rol', rol, 'otorgar_permiso', `${rol}: + ${permiso}`)
+          })
+      },
+      revocarPermiso: (rol, permiso) => {
+        setPermisosPorRol((prev) => prev.filter((p) => !(p.rol === rol && p.permiso === permiso)))
+        supabase
+          .from('permisos_por_rol')
+          .delete()
+          .eq('rol', rol)
+          .eq('permiso', permiso)
+          .then(({ error }) => {
+            if (error) {
+              console.error('Error al revocar permiso:', error.message)
+              return
+            }
+            registrarBitacora('permisos_por_rol', rol, 'revocar_permiso', `${rol}: - ${permiso}`)
+          })
+      },
 
       capexBolsaAnualUSD,
       presupuestoMensualUSD,
@@ -1647,6 +1762,8 @@ export function DataStoreProvider({ children }: { children: ReactNode }) {
     contratistas,
     brokers,
     personalRegional,
+    roles,
+    permisosPorRol,
     capexBolsaAnualUSD,
     presupuestoMensualUSD,
     opexPresupuestoAnualUSD,

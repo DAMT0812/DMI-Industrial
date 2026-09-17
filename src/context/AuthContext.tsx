@@ -9,7 +9,10 @@ export interface ProfileRow {
   nombre: string
   correo: string
   puesto: string
-  rol: 'Property Manager' | 'Facility Manager' | 'Dirección' | 'Contabilidad' | 'Administrador del Sistema' | 'Superadministrador'
+  // Fase 7a (Subfase 4/4): antes era una unión fija de 6 literales; ahora los roles viven
+  // en la tabla `roles` (administrables desde /admin/roles) y este campo es texto libre que
+  // debe existir como fila en esa tabla (FK en la base, migración 0019).
+  rol: string
   ambito_regiones: Region[]
   ambito_parques: string[]
   ambito_naves: string[]

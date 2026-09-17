@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { NavLink } from 'react-router-dom'
-import { Building2, ClipboardList, FolderOpenDot, History, Menu, PanelLeftClose, PanelLeftOpen, ShieldCheck, Wrench } from 'lucide-react'
+import { Building2, ClipboardList, FolderOpenDot, History, KeyRound, Menu, PanelLeftClose, PanelLeftOpen, ShieldCheck, Wrench } from 'lucide-react'
 import { Logo } from '@/components/shared/Logo'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet'
@@ -36,7 +36,10 @@ function SidebarBody({ collapsed, onNavigate }: { collapsed: boolean; onNavigate
     { to: '/tareas-capex', label: 'Centro de Tareas & CapEx', icon: ClipboardList, end: false },
     ...(puedeVerBitacora(perfilActivo.rol) ? [{ to: '/bitacora', label: 'Bitácora del Sistema', icon: History, end: false }] : []),
     ...(esAdministrador(perfilActivo.rol)
-      ? [{ to: '/admin/usuarios', label: 'Administración', icon: ShieldCheck, end: false }]
+      ? [
+          { to: '/admin/usuarios', label: 'Administración', icon: ShieldCheck, end: false },
+          { to: '/admin/roles', label: 'Roles y Permisos', icon: KeyRound, end: false },
+        ]
       : []),
   ]
 

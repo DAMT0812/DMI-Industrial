@@ -17,7 +17,6 @@ const CORS_HEADERS = {
 }
 
 const ROLES_QUE_PUEDEN_INVITAR = ['Administrador del Sistema', 'Superadministrador']
-const ROLES_VALIDOS = ['Property Manager', 'Facility Manager', 'Dirección', 'Contabilidad', 'Administrador del Sistema', 'Superadministrador']
 
 function json(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), { status, headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' } })
@@ -53,7 +52,11 @@ Deno.serve(async (req) => {
   }
   const { email, nombre, rol } = cuerpo
   if (!email || !nombre || !rol) return json({ error: 'Faltan datos: correo, nombre y rol son obligatorios' }, 400)
-  if (!ROLES_VALIDOS.includes(rol)) return json({ error: 'Rol inválido' }, 400)
+  // Fase 7a (Subfase 4/4): los roles son un catálogo en la tabla `roles`, no una lista fija
+  // -- se valida contra la base en vez de un arreglo hardcodeado, para que un rol creado
+  // desde /admin/roles funcione aquí también sin redesplegar la función.
+  const { data: rolExiste } = await clienteAdmin.from('roles').select('nombre').eq('nombre', rol).maybeSingle()
+  if (!rolExiste) return json({ error: 'Rol inválido' }, 400)
 
   const { data: invitado, error: errorInvitar } = await clienteAdmin.auth.admin.inviteUserByEmail(email, { data: { nombre } })
   if (errorInvitar || !invitado.user) {

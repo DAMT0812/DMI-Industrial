@@ -5,11 +5,11 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { InvitarUsuarioDialog } from '@/components/admin/InvitarUsuarioDialog'
 import { supabase } from '@/lib/supabaseClient'
 import { useAuth, type ProfileRow } from '@/context/AuthContext'
+import { useDataStore } from '@/context/DataStoreContext'
 import { esAdministrador } from '@/lib/permissions'
 import { registrarBitacora } from '@/lib/bitacora'
 import type { Region } from '@/data'
 
-const ROLES: ProfileRow['rol'][] = ['Property Manager', 'Facility Manager', 'Dirección', 'Contabilidad', 'Administrador del Sistema', 'Superadministrador']
 const REGIONES: Region[] = ['Bajío', 'Norte', 'Occidente']
 
 type FilaEdicion = { rol: ProfileRow['rol']; region: Region | 'todas'; activo: boolean; bloqueado: boolean }
@@ -23,6 +23,7 @@ function regionDeFila(p: ProfileRow): Region | 'todas' {
 
 export function AdminUsuariosPage() {
   const { perfilActivo, profile: miPerfil } = useAuth()
+  const { roles } = useDataStore()
   const [usuarios, setUsuarios] = useState<ProfileRow[] | null>(null)
   const [ediciones, setEdiciones] = useState<Record<string, FilaEdicion>>({})
   const [guardandoId, setGuardandoId] = useState<string | null>(null)
@@ -173,12 +174,12 @@ export function AdminUsuariosPage() {
                   <TableCell>
                     <select
                       value={edicion.rol}
-                      onChange={(e) => setEdiciones((prev) => ({ ...prev, [u.id]: { ...edicion, rol: e.target.value as ProfileRow['rol'] } }))}
+                      onChange={(e) => setEdiciones((prev) => ({ ...prev, [u.id]: { ...edicion, rol: e.target.value } }))}
                       className="h-8 rounded-md border border-border bg-surface-secondary px-2 text-xs focus:border-brand-cobalt focus:outline-none"
                     >
-                      {ROLES.map((r) => (
-                        <option key={r} value={r}>
-                          {r}
+                      {roles.map((r) => (
+                        <option key={r.nombre} value={r.nombre}>
+                          {r.nombre}
                         </option>
                       ))}
                     </select>

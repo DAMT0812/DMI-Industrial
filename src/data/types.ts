@@ -200,6 +200,18 @@ export interface PersonalRegional {
   nombreCompleto: string
 }
 
+// Fase 7a (Subfase 4/4): roles y permisos como catálogo en base de datos (migración 0019),
+// en vez de la unión fija que existía antes en AuthContext.tsx.
+export interface RolInfo {
+  nombre: string
+  esSistema: boolean
+}
+
+export interface PermisoDeRol {
+  rol: string
+  permiso: string
+}
+
 export type TipoSistemaCritico =
   | 'Sistema Contra Incendio (SCI)'
   | 'Subestación Eléctrica'
