@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { ChevronLeft, ChevronRight, Pencil, Search } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Pencil, Search, Trash2 } from 'lucide-react'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Button } from '@/components/ui/button'
 import { StatusBadge } from '@/components/shared/StatusBadge'
@@ -19,11 +19,12 @@ const TODOS_ESTATUS = 'Todos' as const
 export function DirectorioNavesTable() {
   const { moneda, unidad, parqueSeleccionado } = usePreferences()
   const { perfilActivo } = useAuth()
-  const { naves, parqueById, contratoPorNaveId, inquilinoById } = useDataStore()
+  const { naves, parqueById, contratoPorNaveId, inquilinoById, eliminarNave } = useDataStore()
   const [busqueda, setBusqueda] = useState('')
   const [estatusFiltro, setEstatusFiltro] = useState<EstatusOperativo | typeof TODOS_ESTATUS>(TODOS_ESTATUS)
   const [pagina, setPagina] = useState(0)
   const [naveEnEdicion, setNaveEnEdicion] = useState<Nave | null>(null)
+  const [confirmandoEliminarId, setConfirmandoEliminarId] = useState<string | null>(null)
 
   const filas = useMemo(() => {
     const q = busqueda.trim().toLowerCase()
@@ -160,16 +161,47 @@ export function DirectorioNavesTable() {
                     )}
                   </TableCell>
                   <TableCell className="text-right">
-                    <div className="flex justify-end gap-1.5">
-                      {puedeEditarNave(perfilActivo.rol) && (
-                        <Button size="icon-sm" variant="outline" className="h-7 w-7" aria-label="Editar inmueble" onClick={() => setNaveEnEdicion(nave)}>
-                          <Pencil className="h-3.5 w-3.5" />
+                    {confirmandoEliminarId === nave.id ? (
+                      <div className="flex items-center justify-end gap-1.5">
+                        <span className="text-xs text-muted-foreground">¿Eliminar?</span>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-7 text-xs text-status-danger"
+                          onClick={() => {
+                            eliminarNave(nave.id)
+                            setConfirmandoEliminarId(null)
+                          }}
+                        >
+                          Sí
                         </Button>
-                      )}
-                      <Button size="sm" variant="outline" className="h-7 text-xs" nativeButton={false} render={<Link to={`/naves/${nave.id}`} />}>
-                        Ver 360°
-                      </Button>
-                    </div>
+                        <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => setConfirmandoEliminarId(null)}>
+                          No
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="flex justify-end gap-1.5">
+                        {puedeEditarNave(perfilActivo.rol) && (
+                          <Button size="icon-sm" variant="outline" className="h-7 w-7" aria-label="Editar inmueble" onClick={() => setNaveEnEdicion(nave)}>
+                            <Pencil className="h-3.5 w-3.5" />
+                          </Button>
+                        )}
+                        {puedeEditarNave(perfilActivo.rol) && (
+                          <Button
+                            size="icon-sm"
+                            variant="outline"
+                            className="h-7 w-7 text-status-danger"
+                            aria-label="Eliminar inmueble"
+                            onClick={() => setConfirmandoEliminarId(nave.id)}
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                        )}
+                        <Button size="sm" variant="outline" className="h-7 text-xs" nativeButton={false} render={<Link to={`/naves/${nave.id}`} />}>
+                          Ver 360°
+                        </Button>
+                      </div>
+                    )}
                   </TableCell>
                 </TableRow>
               )

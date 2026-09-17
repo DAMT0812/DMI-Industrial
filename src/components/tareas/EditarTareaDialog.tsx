@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -51,14 +52,16 @@ export function EditarTareaDialog({
   onOpenChange: (open: boolean) => void
   tarea: TareaOperativa
 }) {
-  const { editarTarea } = useDataStore()
+  const { editarTarea, eliminarTarea } = useDataStore()
   const [form, setForm] = useState<FormState>(() => estadoDesdeTarea(tarea))
   const [guardado, setGuardado] = useState(false)
+  const [confirmandoEliminar, setConfirmandoEliminar] = useState(false)
 
   useEffect(() => {
     if (open) {
       setForm(estadoDesdeTarea(tarea))
       setGuardado(false)
+      setConfirmandoEliminar(false)
     }
   }, [open, tarea])
 
@@ -154,15 +157,39 @@ export function EditarTareaDialog({
           </div>
         )}
 
-        <DialogFooter>
+        <DialogFooter className={guardado ? undefined : 'sm:justify-between'}>
           {guardado ? (
             <Button onClick={() => onOpenChange(false)}>Cerrar</Button>
+          ) : confirmandoEliminar ? (
+            <>
+              <span className="text-xs text-muted-foreground">¿Eliminar esta tarea?</span>
+              <div className="flex gap-2">
+                <Button variant="outline" onClick={() => setConfirmandoEliminar(false)}>
+                  No
+                </Button>
+                <Button
+                  variant="destructive"
+                  onClick={() => {
+                    eliminarTarea(tarea.id)
+                    onOpenChange(false)
+                  }}
+                >
+                  Sí, eliminar
+                </Button>
+              </div>
+            </>
           ) : (
             <>
-              <Button variant="outline" onClick={() => onOpenChange(false)}>
-                Cancelar
+              <Button variant="outline" className="gap-1.5 text-status-danger hover:text-status-danger" onClick={() => setConfirmandoEliminar(true)}>
+                <Trash2 className="h-3.5 w-3.5" />
+                Eliminar
               </Button>
-              <Button onClick={guardar}>Guardar Cambios</Button>
+              <div className="flex gap-2">
+                <Button variant="outline" onClick={() => onOpenChange(false)}>
+                  Cancelar
+                </Button>
+                <Button onClick={guardar}>Guardar Cambios</Button>
+              </div>
             </>
           )}
         </DialogFooter>

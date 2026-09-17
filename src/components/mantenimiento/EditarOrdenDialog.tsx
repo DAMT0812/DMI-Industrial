@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { Download, FileUp, Pause, Play, XCircle } from 'lucide-react'
+import { Download, FileUp, Pause, Play, RotateCcw, Trash2, XCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -40,12 +40,14 @@ export function EditarOrdenDialog({
   onOpenChange: (open: boolean) => void
   orden: OrdenTrabajo
 }) {
-  const { editarOrden, pausaAbiertaPorOrden, pausarOrden, reanudarOrden, evidenciaPendientePorOrden, enviarEvidencia, contratistas, slaHoras } = useDataStore()
+  const { editarOrden, eliminarOrden, pausaAbiertaPorOrden, pausarOrden, reanudarOrden, evidenciaPendientePorOrden, enviarEvidencia, contratistas, slaHoras } =
+    useDataStore()
   const [form, setForm] = useState<FormState>(() => estadoDesdeOrden(orden))
   const [guardado, setGuardado] = useState(false)
   const [motivoPausa, setMotivoPausa] = useState('')
   const [motivoCancelacion, setMotivoCancelacion] = useState('')
   const [cancelando, setCancelando] = useState(false)
+  const [confirmandoEliminar, setConfirmandoEliminar] = useState(false)
   const [subiendoEvidencia, setSubiendoEvidencia] = useState(false)
   const [urlEvidencia, setUrlEvidencia] = useState<string | null>(null)
   const inputArchivoRef = useRef<HTMLInputElement>(null)
@@ -60,6 +62,7 @@ export function EditarOrdenDialog({
       setMotivoPausa('')
       setMotivoCancelacion('')
       setCancelando(false)
+      setConfirmandoEliminar(false)
     }
   }, [open, orden])
 
@@ -262,6 +265,23 @@ export function EditarOrdenDialog({
                 <p className="text-xs text-muted-foreground">Motivo de cancelación: {orden.motivoCancelacion}</p>
               )}
 
+              {esTerminal && (
+                <div className="mt-3 border-t border-border pt-3">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="gap-1.5"
+                    onClick={() => {
+                      editarOrden(orden.id, { estatus: 'Abierta', motivoCancelacion: null, fechaCierre: null })
+                      onOpenChange(false)
+                    }}
+                  >
+                    <RotateCcw className="h-3.5 w-3.5" />
+                    Reabrir Orden
+                  </Button>
+                </div>
+              )}
+
               {!esTerminal && (
                 <div className="mt-3 border-t border-border pt-3">
                   {cancelando ? (
@@ -299,10 +319,40 @@ export function EditarOrdenDialog({
           </div>
         )}
 
-        <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Cerrar
-          </Button>
+        <DialogFooter className={guardado ? undefined : 'sm:justify-between'}>
+          {guardado ? (
+            <Button variant="outline" onClick={() => onOpenChange(false)}>
+              Cerrar
+            </Button>
+          ) : confirmandoEliminar ? (
+            <>
+              <span className="text-xs text-muted-foreground">¿Eliminar esta orden?</span>
+              <div className="flex gap-2">
+                <Button variant="outline" onClick={() => setConfirmandoEliminar(false)}>
+                  No
+                </Button>
+                <Button
+                  variant="destructive"
+                  onClick={() => {
+                    eliminarOrden(orden.id)
+                    onOpenChange(false)
+                  }}
+                >
+                  Sí, eliminar
+                </Button>
+              </div>
+            </>
+          ) : (
+            <>
+              <Button variant="outline" className="gap-1.5 text-status-danger hover:text-status-danger" onClick={() => setConfirmandoEliminar(true)}>
+                <Trash2 className="h-3.5 w-3.5" />
+                Eliminar
+              </Button>
+              <Button variant="outline" onClick={() => onOpenChange(false)}>
+                Cerrar
+              </Button>
+            </>
+          )}
         </DialogFooter>
       </DialogContent>
     </Dialog>

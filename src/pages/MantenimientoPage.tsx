@@ -46,6 +46,8 @@ export function MantenimientoPage() {
   // cambio se refleja en todas las pantallas que lean esta misma orden.
   const [otParaValidar, setOtParaValidar] = useState<OrdenTrabajo | null>(null)
   const [otParaEditar, setOtParaEditar] = useState<OrdenTrabajo | null>(null)
+  const [mostrarCerradas, setMostrarCerradas] = useState(false)
+  const ordenesCerradas = ordenesTrabajo.filter((o) => o.estatus === 'Validado' || o.estatus === 'Cancelada')
 
   return (
     <div className="flex flex-col gap-6">
@@ -170,11 +172,16 @@ export function MantenimientoPage() {
                 <TableBody>
                   {ordenesTrabajo
                     .filter((o) => o.estatus !== 'Validado' && o.estatus !== 'Cancelada')
-                    .filter((o) => perfilActivo.region === 'todas' || parqueById(naveById(o.naveId)!.parqueId)?.region === perfilActivo.region)
+                    .filter((o) => {
+                      if (perfilActivo.region === 'todas') return true
+                      const nave = naveById(o.naveId)
+                      return nave ? parqueById(nave.parqueId)?.region === perfilActivo.region : false
+                    })
                     .map((o) => {
-                      const nave = naveById(o.naveId)!
                       // naves y parques se cargan con fetches independientes: en un refresh
                       // en frío pueden resolver en cualquier orden.
+                      const nave = naveById(o.naveId)
+                      if (!nave) return null
                       const parque = parqueById(nave.parqueId)
                       if (!parque) return null
                       const contratista = contratistaById(o.contratistaId)
@@ -219,6 +226,68 @@ export function MantenimientoPage() {
               </Table>
             </div>
           </CardContent>
+        </Card>
+
+        <Card className="xl:col-span-2">
+          <CardHeader className="flex-row items-center justify-between">
+            <CardTitle className="text-sm font-semibold">Órdenes Cerradas ({ordenesCerradas.length})</CardTitle>
+            <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => setMostrarCerradas((v) => !v)}>
+              {mostrarCerradas ? 'Ocultar' : 'Mostrar'}
+            </Button>
+          </CardHeader>
+          {mostrarCerradas && (
+            <CardContent className="p-0">
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>ID / Prioridad</TableHead>
+                      <TableHead>Ubicación & Sistema</TableHead>
+                      <TableHead>Estatus</TableHead>
+                      <TableHead className="text-right">Acción</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {ordenesCerradas.map((o) => {
+                      const nave = naveById(o.naveId)
+                      const parque = nave ? parqueById(nave.parqueId) : undefined
+                      return (
+                        <TableRow key={o.id}>
+                          <TableCell>
+                            <div className="font-medium text-foreground">{o.folio}</div>
+                            <StatusBadge estatus={o.prioridad} />
+                          </TableCell>
+                          <TableCell>
+                            <div className="text-foreground">{o.categoria}</div>
+                            <div className="text-xs text-muted-foreground">
+                              {parque && nave ? `${parque.nombre} — Nave ${nave.numeroNave}` : '—'}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <StatusBadge estatus={o.estatus} />
+                          </TableCell>
+                          <TableCell className="text-right">
+                            {puedeEditarOrden(perfilActivo.rol) && (
+                              <Button size="icon-sm" variant="outline" className="h-7 w-7" aria-label="Editar orden" onClick={() => setOtParaEditar(o)}>
+                                <Pencil className="h-3.5 w-3.5" />
+                              </Button>
+                            )}
+                          </TableCell>
+                        </TableRow>
+                      )
+                    })}
+                    {ordenesCerradas.length === 0 && (
+                      <TableRow>
+                        <TableCell colSpan={4} className="py-6 text-center text-xs text-muted-foreground">
+                          Ninguna orden cerrada todavía.
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
+            </CardContent>
+          )}
         </Card>
 
         <Card>

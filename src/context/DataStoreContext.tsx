@@ -109,6 +109,7 @@ interface DataStoreContextValue {
   naveById: (id: string) => Nave | undefined
   agregarNave: (nave: Nave) => void
   editarNave: (id: string, cambios: Partial<Nave>) => void
+  eliminarNave: (id: string) => void
 
   documentos: DocumentoPermiso[]
   documentosPorNave: (naveId: string) => DocumentoPermiso[]
@@ -124,6 +125,7 @@ interface DataStoreContextValue {
   ordenesTrabajo: OrdenTrabajo[]
   ordenesPorNave: (naveId: string) => OrdenTrabajo[]
   editarOrden: (id: string, cambios: Partial<OrdenTrabajo>) => void
+  eliminarOrden: (id: string) => void
   pausaAbiertaPorOrden: (ordenId: string) => PausaOrden | undefined
   pausarOrden: (ordenId: string, motivo: string) => void
   reanudarOrden: (ordenId: string) => void
@@ -133,6 +135,7 @@ interface DataStoreContextValue {
 
   tareasOperativas: TareaOperativa[]
   editarTarea: (id: string, cambios: Partial<TareaOperativa>) => void
+  eliminarTarea: (id: string) => void
 
   proyectosCapex: ProyectoCapex[]
   proyectoCapexPorNave: (naveId: string) => ProyectoCapex[]
@@ -954,6 +957,7 @@ export function DataStoreProvider({ children }: { children: ReactNode }) {
     supabase
       .from('naves')
       .select('*')
+      .eq('eliminado', false)
       .then(({ data }) => {
         if (data) setNaves(data.map(naveDeFila))
         setNavesListas(true)
@@ -979,6 +983,7 @@ export function DataStoreProvider({ children }: { children: ReactNode }) {
     supabase
       .from('ordenes_trabajo')
       .select('*')
+      .eq('eliminado', false)
       .then(({ data }) => {
         if (data) setOrdenesTrabajo(data.map(ordenDeFila))
       })
@@ -997,6 +1002,7 @@ export function DataStoreProvider({ children }: { children: ReactNode }) {
     supabase
       .from('tareas_operativas')
       .select('*')
+      .eq('eliminado', false)
       .then(({ data }) => {
         if (data) setTareasOperativas(data.map(tareaDeFila))
       })
@@ -1168,6 +1174,21 @@ export function DataStoreProvider({ children }: { children: ReactNode }) {
             registrarBitacora('naves', id, 'edicion', describirCambiosNave(cambios))
           })
       },
+      eliminarNave: (id) => {
+        const nave = naves.find((n) => n.id === id)
+        setNaves((prev) => prev.filter((n) => n.id !== id))
+        supabase
+          .from('naves')
+          .update({ eliminado: true })
+          .eq('id', id)
+          .then(({ error }) => {
+            if (error) {
+              console.error('Error al eliminar nave en Supabase:', error.message)
+              return
+            }
+            registrarBitacora('naves', id, 'baja', `Nave dada de baja${nave ? `: ${nave.folio} (Nave ${nave.numeroNave})` : ''}`)
+          })
+      },
 
       documentos,
       documentosPorNave: (naveId) => documentosPorNaveBase(naveId, documentos),
@@ -1244,6 +1265,17 @@ export function DataStoreProvider({ children }: { children: ReactNode }) {
             return
           }
           registrarBitacora('ordenes_trabajo', id, 'edicion', describirCambiosOrden(cambios))
+        })
+      },
+      eliminarOrden: (id) => {
+        const orden = ordenesTrabajo.find((o) => o.id === id)
+        setOrdenesTrabajo((prev) => prev.filter((o) => o.id !== id))
+        actualizarOrdenEnSupabase(id, { eliminado: true }).then(({ error }) => {
+          if (error) {
+            console.error('Error al eliminar orden en Supabase:', error.message)
+            return
+          }
+          registrarBitacora('ordenes_trabajo', id, 'baja', `Orden dada de baja${orden ? `: ${orden.folio}` : ''}`)
         })
       },
 
@@ -1381,6 +1413,21 @@ export function DataStoreProvider({ children }: { children: ReactNode }) {
               return
             }
             registrarBitacora('tareas_operativas', id, 'edicion', describirCambiosTarea(cambios))
+          })
+      },
+      eliminarTarea: (id) => {
+        const tarea = tareasOperativas.find((t) => t.id === id)
+        setTareasOperativas((prev) => prev.filter((t) => t.id !== id))
+        supabase
+          .from('tareas_operativas')
+          .update({ eliminado: true })
+          .eq('id', id)
+          .then(({ error }) => {
+            if (error) {
+              console.error('Error al eliminar tarea en Supabase:', error.message)
+              return
+            }
+            registrarBitacora('tareas_operativas', id, 'baja', `Tarea dada de baja${tarea ? `: ${tarea.titulo}` : ''}`)
           })
       },
 
