@@ -17,7 +17,7 @@ function MicrosoftLogo({ className }: { className?: string }) {
 }
 
 export function LoginPage() {
-  const { signIn, signUp, signInWithAzure } = useAuth()
+  const { signIn, signUp, signInWithAzure, authError } = useAuth()
   const [modo, setModo] = useState<'entrar' | 'crear'>('entrar')
   const [nombre, setNombre] = useState('')
   const [correo, setCorreo] = useState('')
@@ -117,7 +117,7 @@ export function LoginPage() {
             <Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={6} />
           </div>
 
-          {error && <p className="rounded-md bg-status-danger-bg px-3 py-2 text-xs text-status-danger">{error}</p>}
+          {(error || authError) && <p className="rounded-md bg-status-danger-bg px-3 py-2 text-xs text-status-danger">{error ?? authError}</p>}
           {aviso && <p className="rounded-md bg-status-success-bg px-3 py-2 text-xs text-status-success">{aviso}</p>}
 
           <Button type="submit" className="mt-1" disabled={enviando}>

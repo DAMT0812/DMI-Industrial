@@ -1,4 +1,5 @@
-import { LogOut, Search } from 'lucide-react'
+import { useState } from 'react'
+import { KeyRound, LogOut, Search } from 'lucide-react'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import {
   DropdownMenu,
@@ -12,12 +13,14 @@ import {
 import { PillToggle } from '@/components/shared/ToggleGroup'
 import { MobileSidebar } from '@/components/layout/Sidebar'
 import { NotificacionesMenu } from '@/components/layout/NotificacionesMenu'
+import { CambiarContrasenaDialog } from '@/components/layout/CambiarContrasenaDialog'
 import { usePreferences } from '@/context/PreferencesContext'
 import { useAuth } from '@/context/AuthContext'
 
 export function Topbar() {
   const { moneda, setMoneda, unidad, setUnidad } = usePreferences()
   const { perfilActivo, signOut } = useAuth()
+  const [cambiarPasswordAbierto, setCambiarPasswordAbierto] = useState(false)
 
   return (
     <header className="sticky top-0 z-20 flex h-16 shrink-0 items-center gap-3 border-b border-border bg-card/95 px-4 backdrop-blur sm:px-6">
@@ -73,6 +76,13 @@ export function Topbar() {
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
+              <DropdownMenuItem onClick={() => setCambiarPasswordAbierto(true)}>
+                <KeyRound className="h-3.5 w-3.5" />
+                Cambiar contraseña
+              </DropdownMenuItem>
+            </DropdownMenuGroup>
+            <DropdownMenuSeparator />
+            <DropdownMenuGroup>
               <DropdownMenuItem onClick={() => void signOut()} className="text-status-danger">
                 <LogOut className="h-3.5 w-3.5" />
                 Cerrar sesión
@@ -81,6 +91,8 @@ export function Topbar() {
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
+
+      <CambiarContrasenaDialog open={cambiarPasswordAbierto} onOpenChange={setCambiarPasswordAbierto} />
     </header>
   )
 }

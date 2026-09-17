@@ -15,6 +15,8 @@ export interface ProfileRow {
   ambito_naves: string[]
   acceso_total: boolean
   activo: boolean
+  bloqueado: boolean
+  eliminado: boolean
   avatar_iniciales: string
 }
 
@@ -42,6 +44,7 @@ interface AuthState {
   profile: ProfileRow | null
   perfilActivo: PerfilActivo
   loading: boolean
+  authError: string | null
   signIn: (correo: string, password: string) => Promise<{ error: string | null }>
   signUp: (correo: string, password: string, nombre: string) => Promise<{ error: string | null; necesitaConfirmacion: boolean }>
   // SSO con Microsoft Entra ID (Fase 6l) — el App Registration del tenant grupodmi.com.mx
@@ -59,6 +62,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null)
   const [profile, setProfile] = useState<ProfileRow | null>(null)
   const [loading, setLoading] = useState(true)
+  const [authError, setAuthError] = useState<string | null>(null)
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
@@ -93,7 +97,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .maybeSingle()
       .then(({ data }) => {
         if (cancelado) return
-        setProfile(data as ProfileRow | null)
+        const fila = data as ProfileRow | null
+        // Bloqueo/baja lógica (Fase 7a) cortan el acceso a los datos vía RLS, pero
+        // supabase.auth.signInWithPassword/SSO por sí solos no lo saben — sin este chequeo,
+        // la persona entraría con sesión válida y vería la app completamente vacía sin
+        // ninguna explicación. Se cierra la sesión de inmediato y se explica por qué.
+        if (fila?.bloqueado || fila?.eliminado) {
+          setAuthError(fila.eliminado ? 'Esta cuenta fue dada de baja.' : 'Esta cuenta está bloqueada. Contacta a un administrador.')
+          setProfile(null)
+          setSession(null)
+          setLoading(false)
+          void supabase.auth.signOut()
+          return
+        }
+        setProfile(fila)
         setLoading(false)
       })
     return () => {
@@ -109,7 +126,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         ? { nombre: profile.nombre, puesto: profile.puesto, rol: profile.rol, region: regionDesdeAmbito(profile), iniciales: profile.avatar_iniciales }
         : PERFIL_CARGANDO,
       loading,
+      authError,
       signIn: async (correo, password) => {
+        setAuthError(null)
         const { error } = await supabase.auth.signInWithPassword({ email: correo, password })
         return { error: error?.message ?? null }
       },
@@ -118,6 +137,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return { error: error?.message ?? null, necesitaConfirmacion: !error && !data.session }
       },
       signInWithAzure: async () => {
+        setAuthError(null)
         const { error } = await supabase.auth.signInWithOAuth({
           provider: 'azure',
           options: { scopes: 'openid profile email', redirectTo: window.location.origin },
@@ -129,7 +149,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         await supabase.auth.signOut()
       },
     }),
-    [session, profile, loading],
+    [session, profile, loading, authError],
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
