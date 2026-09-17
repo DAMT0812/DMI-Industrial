@@ -16,6 +16,7 @@ import { useAuth } from '@/context/AuthContext'
 import { puedeCrearOrden, puedeEditarOrden, puedeValidarCierreOrden } from '@/lib/permissions'
 import { type OrdenTrabajo } from '@/data'
 import { formatMoneda, formatPct } from '@/lib/format'
+import { exportarBitacoraMantenimientoPdf } from '@/lib/exportarBitacoraMantenimiento'
 
 export function MantenimientoPage() {
   const { moneda } = usePreferences()
@@ -76,7 +77,11 @@ export function MantenimientoPage() {
           <h1 className="mt-1 text-headline-lg-mobile sm:text-headline-lg text-primary">Supervisión Operativa & Mantenimiento Institucional</h1>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <Button variant="outline" className="gap-1.5">
+          <Button
+            variant="outline"
+            className="gap-1.5"
+            onClick={() => exportarBitacoraMantenimientoPdf({ ordenesCerradas, naveById, parqueById, contratistaById })}
+          >
             <Download className="h-4 w-4" />
             Exportar Bitácora PDF
           </Button>

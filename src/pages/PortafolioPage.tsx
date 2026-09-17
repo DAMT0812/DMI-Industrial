@@ -14,6 +14,7 @@ import { useDataStore } from '@/context/DataStoreContext'
 import { useAuth } from '@/context/AuthContext'
 import { puedeAltaNave } from '@/lib/permissions'
 import { formatMoneda, formatPct, formatSuperficie } from '@/lib/format'
+import { exportarReportePortafolio } from '@/lib/exportarReporte'
 import { useState } from 'react'
 
 const PERIODOS = ['T1 2026', 'T2 2026', 'T3 2026'] as const
@@ -41,6 +42,11 @@ export function PortafolioPage() {
     capexAutorizadoTotal,
     capexBolsaAnualUSD,
     presupuestoMensualUSD,
+    naves,
+    contratos,
+    parqueById,
+    inquilinoById,
+    proyectosCapex,
   } = useDataStore()
 
   const ocupacion = ocupacionGlobalPct
@@ -62,7 +68,29 @@ export function PortafolioPage() {
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <PillToggle value={periodo} options={PERIODOS.map((p) => ({ value: p, label: p }))} onChange={setPeriodo} />
-          <Button variant="outline" className="gap-1.5">
+          <Button
+            variant="outline"
+            className="gap-1.5"
+            onClick={() =>
+              exportarReportePortafolio({
+                naves,
+                contratos,
+                parqueById,
+                inquilinoById,
+                proyectosCapex,
+                kpis: {
+                  ocupacionGlobalPct,
+                  glaTotal,
+                  ingresoMensualTotalUSD,
+                  cobranzaAlDiaPct,
+                  capexAutorizadoTotal,
+                  capexBolsaAnualUSD,
+                  certificacionesLEEDCount,
+                  cumplimientoSTPSPromedio,
+                },
+              })
+            }
+          >
             <Download className="h-4 w-4" />
             Exportar Reporte CapEx/NOI
           </Button>
