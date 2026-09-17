@@ -8,10 +8,11 @@ import { StatusBadge } from '@/components/shared/StatusBadge'
 import { AprobarRechazarDialog } from '@/components/shared/AprobarRechazarDialog'
 import { CalendarioMantenimiento } from '@/components/mantenimiento/CalendarioMantenimiento'
 import { EditarOrdenDialog } from '@/components/mantenimiento/EditarOrdenDialog'
+import { NuevaOrdenDialog } from '@/components/mantenimiento/NuevaOrdenDialog'
 import { usePreferences } from '@/context/PreferencesContext'
 import { useDataStore } from '@/context/DataStoreContext'
 import { useAuth } from '@/context/AuthContext'
-import { puedeEditarOrden, puedeValidarCierreOrden } from '@/lib/permissions'
+import { puedeCrearOrden, puedeEditarOrden, puedeValidarCierreOrden } from '@/lib/permissions'
 import { type OrdenTrabajo } from '@/data'
 import { formatMoneda, formatPct } from '@/lib/format'
 
@@ -47,6 +48,7 @@ export function MantenimientoPage() {
   const [otParaValidar, setOtParaValidar] = useState<OrdenTrabajo | null>(null)
   const [otParaEditar, setOtParaEditar] = useState<OrdenTrabajo | null>(null)
   const [mostrarCerradas, setMostrarCerradas] = useState(false)
+  const [creandoOrden, setCreandoOrden] = useState(false)
   const ordenesCerradas = ordenesTrabajo.filter((o) => o.estatus === 'Validado' || o.estatus === 'Cancelada')
 
   return (
@@ -63,10 +65,12 @@ export function MantenimientoPage() {
             <Download className="h-4 w-4" />
             Exportar Bitácora PDF
           </Button>
-          <Button className="gap-1.5">
-            <PlusCircle className="h-4 w-4" />
-            Crear Orden de Trabajo
-          </Button>
+          {puedeCrearOrden(perfilActivo.rol) && (
+            <Button className="gap-1.5" onClick={() => setCreandoOrden(true)}>
+              <PlusCircle className="h-4 w-4" />
+              Crear Orden de Trabajo
+            </Button>
+          )}
         </div>
       </div>
 
@@ -358,6 +362,7 @@ export function MantenimientoPage() {
       />
 
       {otParaEditar && <EditarOrdenDialog open={otParaEditar !== null} onOpenChange={(open) => !open && setOtParaEditar(null)} orden={otParaEditar} />}
+      {creandoOrden && <NuevaOrdenDialog open={creandoOrden} onOpenChange={setCreandoOrden} />}
     </div>
   )
 }

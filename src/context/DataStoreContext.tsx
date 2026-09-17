@@ -137,6 +137,7 @@ interface DataStoreContextValue {
 
   ordenesTrabajo: OrdenTrabajo[]
   ordenesPorNave: (naveId: string) => OrdenTrabajo[]
+  agregarOrden: (orden: Pick<OrdenTrabajo, 'naveId' | 'categoria' | 'descripcion' | 'prioridad' | 'contratistaId' | 'costoEstimado'>) => void
   editarOrden: (id: string, cambios: Partial<OrdenTrabajo>) => void
   eliminarOrden: (id: string) => void
   pausaAbiertaPorOrden: (ordenId: string) => PausaOrden | undefined
@@ -1372,6 +1373,54 @@ export function DataStoreProvider({ children }: { children: ReactNode }) {
 
       ordenesTrabajo,
       ordenesPorNave: (naveId) => ordenesTrabajo.filter((o) => o.naveId === naveId),
+      agregarOrden: (orden) => {
+        const id = `OT-${Date.now()}`
+        const folio = `OT-${new Date().getFullYear()}-${String(Date.now()).slice(-4)}`
+        const horasSla = slaHoras[orden.prioridad]
+        const fechaCreacion = new Date().toISOString().slice(0, 10)
+        const fechaCompromiso = new Date(Date.now() + horasSla * 3_600_000).toISOString().slice(0, 10)
+        const nueva: OrdenTrabajo = {
+          id,
+          folio,
+          naveId: orden.naveId,
+          sistemaCriticoId: null,
+          categoria: orden.categoria,
+          descripcion: orden.descripcion,
+          prioridad: orden.prioridad,
+          slaHoras: horasSla,
+          contratistaId: orden.contratistaId,
+          costoEstimado: orden.costoEstimado,
+          estatus: 'Abierta',
+          fechaCreacion,
+          fechaCompromiso,
+          fechaCierre: null,
+          motivoCancelacion: null,
+        }
+        setOrdenesTrabajo((prev) => [...prev, nueva])
+        supabase
+          .from('ordenes_trabajo')
+          .insert({
+            id,
+            folio,
+            nave_id: nueva.naveId,
+            categoria: nueva.categoria,
+            descripcion: nueva.descripcion,
+            prioridad: nueva.prioridad,
+            sla_horas: nueva.slaHoras,
+            contratista_id: nueva.contratistaId,
+            costo_estimado: nueva.costoEstimado,
+            estatus: nueva.estatus,
+            fecha_creacion: nueva.fechaCreacion,
+            fecha_compromiso: nueva.fechaCompromiso,
+          })
+          .then(({ error }) => {
+            if (error) {
+              console.error('Error al crear orden en Supabase:', error.message)
+              return
+            }
+            registrarBitacora('ordenes_trabajo', id, 'alta', `Orden creada: ${folio} — ${nueva.categoria}`)
+          })
+      },
       editarOrden: (id, cambios) => {
         setOrdenesTrabajo((prev) => prev.map((o) => (o.id === id ? { ...o, ...cambios } : o)))
         actualizarOrdenEnSupabase(id, ordenAFila(cambios)).then(({ error }) => {

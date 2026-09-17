@@ -55,6 +55,7 @@ export const puedeResolverRenovacion = (rol: Rol) => tiene(rol, 'resolver_renova
 export const puedeEditarDocumentoObra = (rol: Rol) => tiene(rol, 'editar_documento_obra')
 export const puedeEditarDocumentoPredialCfe = (rol: Rol) => tiene(rol, 'editar_documento_predial_cfe')
 
+export const puedeCrearOrden = (rol: Rol) => tiene(rol, 'escribir_orden')
 export const puedeEditarOrden = (rol: Rol) => tiene(rol, 'editar_orden')
 export const puedeValidarCierreOrden = (rol: Rol) => tiene(rol, 'validar_cierre_orden')
 export const puedeEditarTarea = (rol: Rol) => tiene(rol, 'editar_tarea')
@@ -66,12 +67,12 @@ export const puedeResolverCapex = (rol: Rol) => tiene(rol, 'resolver_capex')
 export const puedeVerBitacora = (rol: Rol) => tiene(rol, 'ver_bitacora')
 
 // Catálogo de permisos para la matriz de /admin/roles — mismo orden y agrupación que la
-// tabla del plan. `soloRls` marca los que no tienen un botón/diálogo propio en el cliente
-// (hoy solo escribir_orden: nivel de base de datos, heredado del esquema original).
+// tabla del plan. `soloRls` marca permisos que hoy solo existen a nivel de base de datos,
+// sin botón/diálogo propio en el cliente.
 export const CATALOGO_PERMISOS: { clave: string; etiqueta: string; soloRls?: boolean }[] = [
   { clave: 'alta_nave', etiqueta: 'Dar de alta naves' },
   { clave: 'editar_nave', etiqueta: 'Editar naves' },
-  { clave: 'escribir_orden', etiqueta: 'Crear/registrar órdenes de trabajo (nivel de base de datos)', soloRls: true },
+  { clave: 'escribir_orden', etiqueta: 'Crear órdenes de trabajo' },
   { clave: 'editar_orden', etiqueta: 'Editar órdenes de trabajo' },
   { clave: 'validar_cierre_orden', etiqueta: 'Validar cierre de órdenes' },
   { clave: 'editar_tarea', etiqueta: 'Editar tareas operativas' },
