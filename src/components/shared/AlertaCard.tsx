@@ -1,3 +1,4 @@
+import { useNavigate } from 'react-router-dom'
 import { AlertTriangle, ShieldAlert, Info } from 'lucide-react'
 import type { AlertaVencimiento } from '@/data'
 import { Button } from '@/components/ui/button'
@@ -9,9 +10,32 @@ const ESTILO_URGENCIA: Record<AlertaVencimiento['urgencia'], { borde: string; ic
   'En Cumplimiento': { borde: 'border-l-status-success', icono: Info, iconoColor: 'text-status-success' },
 }
 
+// A qué pestaña del Expediente 360° pertenece cada tipo de alerta de documento — así el
+// botón de acción no solo lleva a la nave correcta, sino a la sección donde se resuelve.
+// 'Póliza Corporativa' no tiene pestaña propia todavía (gap real, no de este arreglo) y
+// cae al default de ExpedienteNavePage.
+const TAB_POR_TIPO_ALERTA: Partial<Record<AlertaVencimiento['tipo'], string>> = {
+  'Tesorería Municipal': 'predial',
+  'Licencia Ambiental': 'predial',
+  'Protección Civil': 'obra',
+}
+
 export function AlertaCard({ alerta }: { alerta: AlertaVencimiento }) {
+  const navigate = useNavigate()
   const estilo = ESTILO_URGENCIA[alerta.urgencia]
   const Icono = estilo.icono
+
+  function irAResolver() {
+    if (alerta.entidadTipo === 'orden') {
+      navigate('/mantenimiento', { state: { ordenId: alerta.entidadId } })
+      return
+    }
+    if (alerta.entidadTipo === 'contrato') {
+      navigate(`/naves/${alerta.naveId}`, { state: { tab: 'contrato' } })
+      return
+    }
+    navigate(`/naves/${alerta.naveId}`, { state: { tab: TAB_POR_TIPO_ALERTA[alerta.tipo] } })
+  }
   const vencimientoTexto = alerta.diasParaVencer < 0
     ? `Vencido hace ${Math.abs(alerta.diasParaVencer)} días`
     : alerta.diasParaVencer === 0
@@ -31,7 +55,7 @@ export function AlertaCard({ alerta }: { alerta: AlertaVencimiento }) {
       {alerta.montoOSuperficie && <p className="tabular text-xs text-muted-foreground">{alerta.montoOSuperficie}</p>}
       <div className="mt-auto flex items-center justify-between pt-1">
         <span className="text-[11px] text-muted-foreground">{alerta.responsable.split(' — ')[0]}</span>
-        <Button size="sm" variant="outline" className="h-7 text-xs">
+        <Button size="sm" variant="outline" className="h-7 text-xs" onClick={irAResolver}>
           {alerta.accion}
         </Button>
       </div>

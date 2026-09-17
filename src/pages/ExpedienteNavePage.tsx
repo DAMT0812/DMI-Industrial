@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Link, Navigate, useParams } from 'react-router-dom'
+import { Link, Navigate, useLocation, useParams } from 'react-router-dom'
 import { Download, Lock, MapPin, Pencil, Share2, ShieldCheck, ClipboardPlus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -19,6 +19,8 @@ import { mesesRestantes } from '@/lib/dates'
 
 export function ExpedienteNavePage() {
   const { naveId } = useParams()
+  const location = useLocation()
+  const tabSolicitada = (location.state as { tab?: string } | null)?.tab
   const { moneda, unidad } = usePreferences()
   const { perfilActivo } = useAuth()
   const { naveById, navesListas, parqueById, parquesListos, contratoPorNaveId, inquilinoById } = useDataStore()
@@ -159,7 +161,7 @@ export function ExpedienteNavePage() {
         </div>
       )}
 
-      <Tabs defaultValue={esContabilidad ? 'predial' : 'obra'}>
+      <Tabs defaultValue={esContabilidad ? 'predial' : (tabSolicitada ?? 'obra')}>
         <TabsList className="h-auto flex-wrap">
           <TabsTrigger value="obra">Obra & Construcción</TabsTrigger>
           <TabsTrigger value="contrato">Contrato & Arrendatario</TabsTrigger>

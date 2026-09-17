@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { AlertOctagon, ClipboardCheck, Clock, Download, DollarSign, Pencil, PlusCircle, Star, Wrench } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -19,6 +20,8 @@ import { formatMoneda, formatPct } from '@/lib/format'
 export function MantenimientoPage() {
   const { moneda } = usePreferences()
   const { perfilActivo } = useAuth()
+  const location = useLocation()
+  const navigate = useNavigate()
   const {
     ordenesTrabajo,
     naveById,
@@ -50,6 +53,18 @@ export function MantenimientoPage() {
   const [mostrarCerradas, setMostrarCerradas] = useState(false)
   const [creandoOrden, setCreandoOrden] = useState(false)
   const ordenesCerradas = ordenesTrabajo.filter((o) => o.estatus === 'Validado' || o.estatus === 'Cancelada')
+
+  // Llegar aquí desde "Ver Orden de Trabajo" en una alerta de vencimiento (AlertaCard) abre
+  // de una vez la ficha de esa orden — se limpia el state de navegación para que no se
+  // reabra sola si el usuario recarga o vuelve con el botón "atrás".
+  useEffect(() => {
+    const ordenId = (location.state as { ordenId?: string } | null)?.ordenId
+    if (!ordenId) return
+    const orden = ordenesTrabajo.find((o) => o.id === ordenId)
+    if (orden) setOtParaEditar(orden)
+    navigate(location.pathname, { replace: true, state: null })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.state])
 
   return (
     <div className="flex flex-col gap-6">
